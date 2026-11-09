@@ -21,6 +21,10 @@ export const DB_ERROR_KEYS = [
   "audience_not_allowed",
   "audience_restricted",
   "audience_members_mismatch",
+  "invalid_reason",
+  "invalid_details",
+  "already_reported",
+  "report_limit",
 ] as const;
 
 export type DbErrorKey = (typeof DB_ERROR_KEYS)[number];
@@ -43,13 +47,17 @@ const ERROR_COPY: Record<DbErrorKey, string> = {
   invalid_notes: "Notes must be 280 characters or fewer.",
   too_many_rides: "You can have at most 5 upcoming rides.",
   seats_below_members: "Seats can't be fewer than the current passengers.",
-  invalid_gender: "Choose brother or sister.",
+  invalid_gender: "Choose Woman, Man, or Prefer not to say.",
   gender_locked:
-    "You can't change this while you're in an upcoming brothers-only or sisters-only ride.",
+    "You can't change this while you're in an upcoming men-only or women-only ride.",
   audience_not_allowed: "Choose anyone or your own group.",
   audience_restricted: "This ride is only open to its selected group.",
   audience_members_mismatch:
     "Every current member must match the selected group.",
+  invalid_reason: "Choose a reason for this report.",
+  invalid_details: "Details must be 500 characters or fewer.",
+  already_reported: "You already reported this ride.",
+  report_limit: "You can send up to five reports in 24 hours.",
 };
 
 const FALLBACK = "Something went wrong. Try again.";

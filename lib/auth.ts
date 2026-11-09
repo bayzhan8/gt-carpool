@@ -12,11 +12,11 @@ export type Profile = {
   last_name: string;
   phone: string;
   venmo: string | null;
-  gender: "brother" | "sister" | null;
+  gender: "man" | "woman" | "unspecified" | null;
 };
 
 export type CompleteProfile = Omit<Profile, "gender"> & {
-  gender: "brother" | "sister";
+  gender: "man" | "woman" | "unspecified";
 };
 
 export type ViewerUser = {
@@ -35,8 +35,9 @@ function isProfile(value: Json | null): value is Profile {
     typeof value.last_name === "string" &&
     typeof value.phone === "string" &&
     (typeof value.venmo === "string" || value.venmo === null) &&
-    (value.gender === "brother" ||
-      value.gender === "sister" ||
+    (value.gender === "man" ||
+      value.gender === "woman" ||
+      value.gender === "unspecified" ||
       value.gender === null)
   );
 }

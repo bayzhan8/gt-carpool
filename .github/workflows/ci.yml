@@ -67,6 +67,7 @@ jobs:
             printf 'SMTP_USER=\n'
             printf 'SMTP_PASS=\n'
             printf 'SMTP_FROM="GT Carpool <no-reply@gt-carpool.test>"\n'
+            printf 'REPORTS_EMAIL=m7-reports@gatech.edu\n'
             printf 'NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000\n'
             printf 'CRON_SECRET=local-cron-secret\n'
           } > .env.local

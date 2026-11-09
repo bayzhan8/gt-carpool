@@ -17,7 +17,7 @@ values (
   'One',
   '+14045550123'
 );
-update public.profiles set gender = 'brother' where gender is null;
+update public.profiles set gender = 'man' where gender is null;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{}', true);

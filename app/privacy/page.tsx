@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold">What we store</h2>
         <p>
           We store your Georgia Tech email, name, phone number, optional Venmo
-          handle, brother or sister group, and ride details such as route, time,
+          handle, gender (optional), and ride details such as route, time,
           seats, notes, and membership.
         </p>
       </section>

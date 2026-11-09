@@ -31,11 +31,9 @@ export default async function NewRidePage() {
       </p>
       {targetDate ? (
         <RideForm
-          initialAudience={
-            profile.gender === "brother" ? "brothers" : "sisters"
-          }
           initialDate={targetDate}
           initialTime={targetTime}
+          ownerGender={profile.gender}
         />
       ) : null}
     </section>

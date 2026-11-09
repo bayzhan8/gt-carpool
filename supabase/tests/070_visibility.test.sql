@@ -15,7 +15,7 @@ values
   ('70000000-0000-4000-8000-000000000001', 'owner@gatech.edu', 'Alex', 'Owner', '+14045550123', 'alex_owner'),
   ('70000000-0000-4000-8000-000000000002', 'member@gatech.edu', 'Taylor', 'Parker', '+14045550124', 'taylor_handle'),
   ('70000000-0000-4000-8000-000000000003', 'outsider@gatech.edu', 'Chris', 'Smith', '+14045550125', 'chris_handle');
-update public.profiles set gender = 'brother' where gender is null;
+update public.profiles set gender = 'man' where gender is null;
 
 insert into public.rides (id, owner_id, origin, destination, departs_at, seats, notes, status)
 values

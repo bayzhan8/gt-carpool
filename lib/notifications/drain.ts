@@ -6,7 +6,7 @@ import { render, type NotificationEmailData } from "./render";
 
 type DrainResult = { sent: number; failed: number };
 
-function smtpTransport() {
+export function smtpTransport() {
   const port = Number(process.env.SMTP_PORT);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;

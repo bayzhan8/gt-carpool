@@ -4,11 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 
 export type RideDirection = "airport" | "campus";
 export type RideStatus = "active" | "cancelled";
-export type RideAudience = "anyone" | "brothers" | "sisters";
+export type RideAudience = "anyone" | "men" | "women";
 
 export type RideMix = {
-  brothers: number;
-  sisters: number;
+  men: number;
+  women: number;
 };
 
 export type RidePlaceCard = {

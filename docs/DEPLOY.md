@@ -17,6 +17,7 @@
    export RESEND_API_KEY="..."
    # Optional:
    export DOMAIN="rides.example.edu"
+   export REPORTS_EMAIL="carpool-reports@example.edu"
    npx tsx scripts/deploy.ts
    ```
 
@@ -32,6 +33,8 @@
    `SUPABASE_PROJECT_REF=abcdefghijklmnopqrst`; the CLI resolves the production
    remote block while loading config even for local commands. The deploy script
    supplies the actual project ref automatically.
+   `REPORTS_EMAIL` is optional; when unset, ride reports remain stored in the
+   database and report-email delivery is skipped with a server warning.
 4. If you set `DOMAIN`, add the exact DNS records printed by Resend and Vercel
    at your registrar. The script waits up to ten minutes for the Resend sending
    domain to verify. Without `DOMAIN`, mail uses `onboarding@resend.dev`;

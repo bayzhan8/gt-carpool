@@ -33,6 +33,7 @@ select is(
     'public.leave_ride(uuid)'::regprocedure,
     'public.list_rides(text,date)'::regprocedure,
     'public.my_rides()'::regprocedure,
+    'public.report_ride(uuid,text,text)'::regprocedure,
     'public.update_ride(uuid,timestamptz,integer,text,text)'::regprocedure,
     'public.upsert_my_profile(text,text,text,text,text)'::regprocedure
   ]::regprocedure[],
@@ -59,6 +60,7 @@ select is(
     'public.leave_ride(uuid)'::regprocedure,
     'public.list_rides(text,date)'::regprocedure,
     'public.my_rides()'::regprocedure,
+    'public.report_ride(uuid,text,text)'::regprocedure,
     'public.update_ride(uuid,timestamptz,integer,text,text)'::regprocedure,
     'public.upsert_my_profile(text,text,text,text,text)'::regprocedure
   ]::regprocedure[],
@@ -172,16 +174,16 @@ select is(
    where n.nspname = 'public'
      and c.relkind in ('r', 'p')
      and c.relrowsecurity),
-  5,
-  'R-VIS-4 and R-NOTIF-1 row-level security is enabled on all five tables'
+  6,
+  'R-VIS-4, R-NOTIF-1 and R-REPORT-1 row-level security is enabled on all six tables'
 );
 select is(
   (select pg_catalog.count(*)::integer
    from pg_catalog.pg_policies as p
    where p.schemaname = 'public'
-     and p.tablename in ('places', 'profiles', 'rides', 'ride_members', 'notifications')),
+     and p.tablename in ('places', 'profiles', 'rides', 'ride_members', 'notifications', 'reports')),
   0,
-  'R-VIS-4 and R-NOTIF-1 public tables have no RLS policies'
+  'R-VIS-4, R-NOTIF-1 and R-REPORT-1 public tables have no RLS policies'
 );
 select ok(
   not pg_catalog.has_schema_privilege('anon', 'app', 'USAGE'),

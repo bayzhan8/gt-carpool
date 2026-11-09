@@ -137,16 +137,30 @@ outbox (claim with `for update skip locked`, mark sent/failed, max 5 attempts).
 Drained right after each action and by a scheduled backstop. Plain-text email,
 one sentence + link. Local/CI uses Mailpit; production uses Resend SMTP.
 
-## Brothers and sisters (M5b)
+## Gender and ride audiences (M7)
 
 | ID | Rule |
 |---|---|
-| R-COMFORT-1 | Profiles require a gender of `brother` or `sister`; it is collected during onboarding and may be edited unless the user belongs to an upcoming active restricted ride. |
-| R-COMFORT-2 | A ride audience is `anyone`, `brothers`, or `sisters`. Owners may choose anyone or their own group; the app defaults to the owner's group while the SQL default remains anyone. |
-| R-COMFORT-3 | Joining a restricted ride requires a matching gender, checked while the ride row is locked. |
+| R-COMFORT-1 | Profiles require a gender of `man`, `woman`, or `unspecified`; onboarding offers Woman, Man, and Prefer not to say. Gender may be edited unless the user belongs to an upcoming active restricted ride. |
+| R-COMFORT-2 | A ride audience is `anyone`, `men`, or `women`. Rides default to anyone; an owner may opt into only their own group. An unspecified-gender owner may create anyone rides only. |
+| R-COMFORT-3 | Joining a restricted ride requires a matching man/woman gender, checked while the ride row is locked. Unspecified-gender users cannot join restricted rides. |
 | R-COMFORT-4 | Owners may edit a ride's audience only to anyone or their own group. A restricted audience requires every current member to match; edits and joins serialize on the ride row. |
 | R-COMFORT-5 | Anonymous viewers can browse all rides. Signed-in browse and similar-ride results hide restricted rides from non-matching non-members. Direct links remain available and show a restricted-audience notice instead of Join. |
-| R-COMFORT-6 | Signed-in viewers see brother/sister member counts on anyone rides. Anonymous viewers do not; restricted rides show only a neutral audience chip. |
+| R-COMFORT-6 | Signed-in viewers see man/woman member counts on anyone rides; unspecified members are omitted. Anonymous viewers do not see a mix; restricted rides show only a neutral audience chip. |
+
+## Ride reports (M7)
+
+| ID | Rule |
+|---|---|
+| R-REPORT-1 | Reports are private rows with RLS enabled and no table grants. `report_ride` requires a complete profile and a ride visible to the reporter, allows one report per ride/reporter, and limits each reporter to five reports in a rolling 24 hours. Reasons are `no_show`, `unsafe`, `wrong_info`, and `other`; trimmed details are at most 500 characters, with blank details stored as NULL. Deleting a ride cascades its reports; deleting a reporter preserves reports with a NULL `reporter_id`. |
+| R-REPORT-2 | After a report is stored, a plain-text email is sent to `REPORTS_EMAIL` through SMTP using Next.js `after()`. Missing email configuration skips delivery with a warning; email failure never removes the database report. |
+| R-REPORT-3 | A ride page offers a report dialog with four reasons, a 500-character detail field, and a success confirmation; database errors are shown through `errorCopy`. |
+
+## M7 screenshot states
+
+The desktop and mobile review captures show the welcome gender choices, the
+opt-in ride-audience checkbox, calendar/share/group-text actions on a member
+ride, the report dialog, and a browse card with an audience chip and member mix.
 
 ## 9. Design
 

@@ -19,7 +19,7 @@ export function EditRideForm({
   date: string;
   time: string;
   audience: RideAudience;
-  ownerGender: "brother" | "sister";
+  ownerGender: "man" | "woman" | "unspecified";
   seats: number;
   notes: string;
 }) {
@@ -30,44 +30,30 @@ export function EditRideForm({
   const [seats, setSeats] = useState(initialSeats);
   const [notes, setNotes] = useState(initialNotes);
   const [audience, setAudience] = useState<RideAudience>(initialAudience);
-  const ownAudience = ownerGender === "brother" ? "brothers" : "sisters";
+  const ownAudience =
+    ownerGender === "man" ? "men" : ownerGender === "woman" ? "women" : null;
 
   return (
     <form action={action} className="space-y-5">
+      {!ownAudience ? (
+        <input name="audience" type="hidden" value="anyone" />
+      ) : null}
       <p className="text-sm text-muted">Atlanta time</p>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-muted">Who can join</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {(
-            [
-              [
-                ownAudience,
-                ownerGender === "brother" ? "Brothers only" : "Sisters only",
-              ],
-              ["anyone", "Anyone"],
-            ] as const
-          ).map(([value, label]) => (
-            <label
-              className={`flex min-h-12 cursor-pointer items-center justify-center rounded-[10px] border text-sm font-medium ${
-                audience === value
-                  ? "border-primary bg-surface"
-                  : "border-hairline"
-              }`}
-              key={value}
-            >
-              <input
-                checked={audience === value}
-                className="sr-only"
-                name="audience"
-                onChange={() => setAudience(value)}
-                type="radio"
-                value={value}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {ownAudience ? (
+        <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] border border-hairline px-4 text-sm font-medium">
+          <input
+            checked={audience === ownAudience}
+            className="size-4 accent-primary"
+            name="audience"
+            onChange={(event) =>
+              setAudience(event.target.checked ? ownAudience : "anyone")
+            }
+            type="checkbox"
+            value={ownAudience}
+          />
+          {ownAudience === "women" ? "Women only" : "Men only"}
+        </label>
+      ) : null}
       <div className="grid grid-cols-2 gap-3">
         <label className="space-y-2 text-sm font-medium text-muted">
           Date

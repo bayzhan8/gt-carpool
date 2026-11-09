@@ -3,9 +3,23 @@
 import { useState } from "react";
 import { formatUsPhone } from "@/lib/phone";
 import type { RideContact } from "@/lib/rides";
+import { TextEveryone } from "./text-everyone";
 
-export function RideContacts({ members }: { members: RideContact[] }) {
+export function RideContacts({
+  members,
+  departsAt,
+  route,
+  rideUrl,
+}: {
+  members: RideContact[];
+  departsAt: string;
+  route: string;
+  rideUrl: string;
+}) {
   const [copied, setCopied] = useState(false);
+  const otherNumbers = members
+    .filter((member) => !member.is_viewer && member.phone)
+    .map((member) => member.phone);
 
   async function copyNumbers() {
     const numbers = members
@@ -28,6 +42,14 @@ export function RideContacts({ members }: { members: RideContact[] }) {
           Copy all numbers
         </button>
       </div>
+      {otherNumbers.length >= 2 ? (
+        <TextEveryone
+          departsAt={departsAt}
+          numbers={otherNumbers}
+          rideUrl={rideUrl}
+          route={route}
+        />
+      ) : null}
       {copied ? (
         <p className="text-sm text-muted" role="status">
           Copied

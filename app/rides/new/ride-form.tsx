@@ -22,13 +22,13 @@ const initialState: CreateRideState = {};
 type RideFormProps = {
   initialDate: string;
   initialTime: string;
-  initialAudience: RideAudience;
+  ownerGender: "man" | "woman" | "unspecified";
 };
 
 export function RideForm({
   initialDate,
   initialTime,
-  initialAudience,
+  ownerGender,
 }: RideFormProps) {
   const [state, action, pending] = useActionState(
     createRideAction,
@@ -40,7 +40,9 @@ export function RideForm({
   const [time, setTime] = useState(initialTime);
   const [seats, setSeats] = useState(4);
   const [notes, setNotes] = useState("");
-  const [audience, setAudience] = useState<RideAudience>(initialAudience);
+  const [audience, setAudience] = useState<RideAudience>("anyone");
+  const ownAudience =
+    ownerGender === "man" ? "men" : ownerGender === "woman" ? "women" : null;
   const [suggestionState, setSuggestionState] = useState<{
     key: string;
     rides: RideCardData[];
@@ -191,41 +193,21 @@ export function RideForm({
         </div>
       </div>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-muted">Who can join</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {(
-            [
-              [
-                initialAudience,
-                initialAudience === "brothers"
-                  ? "Brothers only"
-                  : "Sisters only",
-              ],
-              ["anyone", "Anyone"],
-            ] as const
-          ).map(([value, label]) => (
-            <label
-              className={`flex min-h-12 cursor-pointer items-center justify-center rounded-[10px] border text-sm font-medium ${
-                audience === value
-                  ? "border-primary bg-surface"
-                  : "border-hairline"
-              }`}
-              key={value}
-            >
-              <input
-                checked={audience === value}
-                className="sr-only"
-                name="audience"
-                onChange={() => setAudience(value)}
-                type="radio"
-                value={value}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {ownAudience ? (
+        <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] border border-hairline px-4 text-sm font-medium">
+          <input
+            checked={audience === ownAudience}
+            className="size-4 accent-primary"
+            name="audience"
+            onChange={(event) =>
+              setAudience(event.target.checked ? ownAudience : "anyone")
+            }
+            type="checkbox"
+            value={ownAudience}
+          />
+          {ownAudience === "women" ? "Women only" : "Men only"}
+        </label>
+      ) : null}
       <div className="space-y-2">
         <span className="block text-sm font-medium text-muted">
           Seats, including you

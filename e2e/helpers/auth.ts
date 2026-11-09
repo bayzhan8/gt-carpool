@@ -39,7 +39,7 @@ type ProfileOptions = {
   lastName?: string;
   phone?: string;
   venmo?: string;
-  gender?: "brother" | "sister";
+  gender?: "man" | "woman" | "unspecified";
 };
 
 export async function completeProfile(
@@ -52,9 +52,16 @@ export async function completeProfile(
   if (options.venmo) {
     await page.getByLabel("Venmo").fill(options.venmo);
   }
-  const genderLabel = options.gender === "sister" ? "Sister" : "Brother";
+  const genderLabel =
+    options.gender === "woman"
+      ? "Woman"
+      : options.gender === "unspecified"
+        ? "Prefer not to say"
+        : "Man";
   await page.getByText(genderLabel, { exact: true }).click();
-  await expect(page.getByRole("radio", { name: genderLabel })).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: genderLabel, exact: true }),
+  ).toBeChecked();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.waitForURL((url) => url.pathname !== "/welcome");
 }

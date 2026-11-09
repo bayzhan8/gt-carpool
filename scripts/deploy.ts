@@ -806,6 +806,7 @@ function makeDryRunPlan(env: DeployEnv): Json[] {
           "SMTP_USER",
           "SMTP_PASS",
           "SMTP_FROM",
+          "REPORTS_EMAIL",
           "NEXT_PUBLIC_SITE_URL",
           "CRON_SECRET",
         ],
@@ -1024,6 +1025,7 @@ export async function deploy(
     SMTP_USER: "resend",
     SMTP_PASS: resendKey,
     SMTP_FROM: smtpFrom,
+    ...(env.REPORTS_EMAIL ? { REPORTS_EMAIL: env.REPORTS_EMAIL } : {}),
     NEXT_PUBLIC_SITE_URL: provisionalUrl,
   };
   let cronSecret = await configureVercelEnvironment(

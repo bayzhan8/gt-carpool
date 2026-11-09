@@ -20,7 +20,7 @@ select throws_ok(
   'R-AUTH-4 profile lookup requires authentication'
 );
 select throws_ok(
-  $$select public.upsert_my_profile('A', 'B', '+14045550123', null, 'brother')$$,
+  $$select public.upsert_my_profile('A', 'B', '+14045550123', null, 'man')$$,
   'P0001',
   'not_authenticated',
   'R-AUTH-4 profile upsert requires authentication'
@@ -43,7 +43,7 @@ select set_config(
   true
 );
 select is(
-  public.upsert_my_profile('  Name ', ' Person  ', '+14045550123', ' @my_handle ', 'brother'),
+  public.upsert_my_profile('  Name ', ' Person  ', '+14045550123', ' @my_handle ', 'man'),
   pg_catalog.jsonb_build_object(
     'id', '30000000-0000-4000-8000-000000000001'::uuid,
     'email', 'name@gatech.edu',
@@ -51,7 +51,7 @@ select is(
     'last_name', 'Person',
     'phone', '+14045550123',
     'venmo', 'my_handle',
-    'gender', 'brother'
+    'gender', 'man'
   ),
   'R-PROF-1 profile upsert trims names and Venmo and copies normalized auth email'
 );
@@ -64,24 +64,24 @@ select is(
     'last_name', 'Person',
     'phone', '+14045550123',
     'venmo', 'my_handle',
-    'gender', 'brother'
+    'gender', 'man'
   ),
   'R-AUTH-4 complete profile lookup returns only the viewer profile'
 );
 select throws_ok(
-  $$select public.upsert_my_profile('   ', 'Person', '+14045550123', null, 'brother')$$,
+  $$select public.upsert_my_profile('   ', 'Person', '+14045550123', null, 'man')$$,
   'P0001',
   'invalid_profile',
   'R-PROF-1 blank names raise invalid_profile'
 );
 select throws_ok(
-  $$select public.upsert_my_profile('Name', 'Person', '404-555-0123', null, 'brother')$$,
+  $$select public.upsert_my_profile('Name', 'Person', '404-555-0123', null, 'man')$$,
   'P0001',
   'invalid_profile',
   'R-PROF-1 non-E.164 phone raises invalid_profile'
 );
 select throws_ok(
-  $$select public.upsert_my_profile('Name', 'Person', '+14045550123', '@bad', 'brother')$$,
+  $$select public.upsert_my_profile('Name', 'Person', '+14045550123', '@bad', 'man')$$,
   'P0001',
   'invalid_profile',
   'R-PROF-1 invalid Venmo raises invalid_profile'
@@ -93,7 +93,7 @@ select set_config(
   true
 );
 select throws_ok(
-  $$select public.upsert_my_profile('Person', 'Outside', '+14045550123', null, 'brother')$$,
+  $$select public.upsert_my_profile('Person', 'Outside', '+14045550123', null, 'man')$$,
   'P0001',
   'email_not_allowed',
   'R-AUTH-2 non-GT auth email raises email_not_allowed'

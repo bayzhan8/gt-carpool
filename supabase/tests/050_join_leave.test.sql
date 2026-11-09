@@ -23,7 +23,7 @@ select
   '+14045550123'
 from auth.users as u
 where u.id <> '50000000-0000-4000-8000-000000000004';
-update public.profiles set gender = 'brother' where gender is null;
+update public.profiles set gender = 'man' where gender is null;
 
 insert into public.rides (id, owner_id, origin, destination, departs_at, seats, status)
 values

@@ -8,6 +8,8 @@ import { formatLongDate, formatTime } from "@/lib/time";
 import { audienceLabel, formatMix } from "@/lib/comfort";
 import { RideContacts } from "./ride-contacts";
 import { RideControls } from "./ride-controls";
+import { ShareRide } from "./share-ride";
+import { ReportRide } from "./report-ride";
 
 type RidePageProps = {
   params: Promise<{ id: string }>;
@@ -24,7 +26,7 @@ export default async function RidePage({ params }: RidePageProps) {
 
   if (!ride) notFound();
 
-  const { user } = await getViewer();
+  const { user, profile } = await getViewer();
   const isMember = ride.viewer_is_member === true;
   const isOwner = ride.viewer_is_owner === true;
   const summaryMembers = (ride.members ?? []) as RideMemberSummary[];
@@ -59,6 +61,19 @@ export default async function RidePage({ params }: RidePageProps) {
           <span className="text-sm text-muted">{formatMix(ride.mix)}</span>
         ) : null}
       </div>
+      {!readOnly ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            className="inline-flex min-h-11 items-center rounded-[10px] border border-hairline px-4 text-sm font-medium"
+            href={`/rides/${ride.id}/calendar.ics`}
+          >
+            Add to calendar
+          </a>
+          <ShareRide
+            title={`Carpool: ${ride.origin.short_name} → ${ride.destination.short_name}`}
+          />
+        </div>
+      ) : null}
       <div className="rounded-[12px] border border-hairline p-4">
         <h1 className="text-xl font-semibold">
           {ride.origin.name} → {ride.destination.name}
@@ -96,7 +111,12 @@ export default async function RidePage({ params }: RidePageProps) {
       ) : null}
       {user && summaryMembers.length > 0 ? (
         isMember && contactMembers ? (
-          <RideContacts members={contactMembers} />
+          <RideContacts
+            departsAt={ride.departs_at}
+            members={contactMembers}
+            rideUrl={`${(process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "")}/rides/${ride.id}`}
+            route={`${ride.origin.short_name} → ${ride.destination.short_name}`}
+          />
         ) : (
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Passengers</h2>
@@ -131,7 +151,7 @@ export default async function RidePage({ params }: RidePageProps) {
         ride.audience !== "anyone" &&
         ride.viewer_can_join_audience === false ? (
         <p className="rounded-[10px] border border-hairline px-4 py-3 text-sm text-muted">
-          This ride is for {ride.audience} only.
+          This ride is for {ride.audience === "women" ? "women" : "men"} only.
         </p>
       ) : user && !readOnly ? (
         <RideControls
@@ -141,6 +161,7 @@ export default async function RidePage({ params }: RidePageProps) {
           rideId={ride.id}
         />
       ) : null}
+      {user && profile?.gender ? <ReportRide rideId={ride.id} /> : null}
     </section>
   );
 }

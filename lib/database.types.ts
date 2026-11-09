@@ -163,6 +163,49 @@ export type Database = {
         };
         Relationships: [];
       };
+      reports: {
+        Row: {
+          created_at: string;
+          details: string | null;
+          id: number;
+          reason: string;
+          reporter_id: string | null;
+          ride_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          details?: string | null;
+          id?: never;
+          reason: string;
+          reporter_id?: string | null;
+          ride_id: string;
+        };
+        Update: {
+          created_at?: string;
+          details?: string | null;
+          id?: never;
+          reason?: string;
+          reporter_id?: string | null;
+          ride_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_ride_id_fkey";
+            columns: ["ride_id"];
+            isOneToOne: false;
+            referencedRelation: "rides";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ride_members: {
         Row: {
           joined_at: string;
@@ -302,6 +345,10 @@ export type Database = {
         Returns: Json;
       };
       my_rides: { Args: Record<PropertyKey, never>; Returns: Json };
+      report_ride: {
+        Args: { p_details: string; p_reason: string; p_ride_id: string };
+        Returns: number;
+      };
       update_ride: {
         Args: {
           p_audience: string;
@@ -324,7 +371,7 @@ export type Database = {
       };
     };
     Enums: {
-      gender: "brother" | "sister";
+      gender: "man" | "woman" | "unspecified";
       notification_kind:
         | "member_joined"
         | "member_left"
@@ -333,7 +380,7 @@ export type Database = {
         | "time_changed";
       notification_status: "pending" | "sending" | "sent" | "failed";
       place_kind: "campus" | "airport";
-      ride_audience: "anyone" | "brothers" | "sisters";
+      ride_audience: "anyone" | "men" | "women";
       ride_status: "active" | "cancelled";
     };
     CompositeTypes: {
@@ -465,7 +512,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      gender: ["brother", "sister"],
+      gender: ["man", "woman", "unspecified"],
       notification_kind: [
         "member_joined",
         "member_left",
@@ -475,7 +522,7 @@ export const Constants = {
       ],
       notification_status: ["pending", "sending", "sent", "failed"],
       place_kind: ["campus", "airport"],
-      ride_audience: ["anyone", "brothers", "sisters"],
+      ride_audience: ["anyone", "men", "women"],
       ride_status: ["active", "cancelled"],
     },
   },

@@ -63,7 +63,7 @@ async function createProfile(): Promise<string> {
   );
   await pool.query(
     `insert into public.profiles (id, email, first_name, last_name, phone, gender)
-     values ($1, $2, 'Race', 'Tester', '+14045550123', 'brother')`,
+     values ($1, $2, 'Race', 'Tester', '+14045550123', 'man')`,
     [id, email],
   );
 
@@ -240,9 +240,9 @@ describe("database concurrency invariants", () => {
   it("serializes a restricted-audience edit against a mismatched join 20 times", async () => {
     for (let iteration = 0; iteration < 20; iteration += 1) {
       const ownerId = await createProfile();
-      const brotherId = await createProfile();
+      const manId = await createProfile();
       await pool.query(
-        "update public.profiles set gender = 'sister' where id = $1",
+        "update public.profiles set gender = 'woman' where id = $1",
         [ownerId],
       );
       const rideResult = await pool.query<{ id: string }>(
@@ -260,21 +260,21 @@ describe("database concurrency invariants", () => {
       const [edit, join] = await Promise.all([
         queryAsUser(
           ownerId,
-          "select public.update_ride($1::uuid, now() + interval '1 day', 4, '', 'sisters')",
+          "select public.update_ride($1::uuid, now() + interval '1 day', 4, '', 'women')",
           [rideId],
         ),
-        queryAsUser(brotherId, "select public.join_ride($1::uuid)", [rideId]),
+        queryAsUser(manId, "select public.join_ride($1::uuid)", [rideId]),
       ]);
       const state = await pool.query<{
         audience: string;
-        has_brother: boolean;
+        has_man: boolean;
       }>(
         `select r.audience::text as audience,
                 exists (
                   select 1 from public.ride_members rm
                   join public.profiles p on p.id = rm.user_id
-                  where rm.ride_id = r.id and p.gender = 'brother'
-                ) as has_brother
+                  where rm.ride_id = r.id and p.gender = 'man'
+                ) as has_man
          from public.rides r where r.id = $1`,
         [rideId],
       );
@@ -284,8 +284,8 @@ describe("database concurrency invariants", () => {
       );
 
       expect(state.rows[0]).not.toEqual({
-        audience: "sisters",
-        has_brother: true,
+        audience: "women",
+        has_man: true,
       });
       expect(failures).toHaveLength(1);
       expect(failures[0].code).toBe("P0001");

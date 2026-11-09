@@ -47,7 +47,13 @@ export default async function MePage() {
         </div>
         <div className="px-4 py-3">
           <dt className="text-xs text-muted">Group</dt>
-          <dd className="mt-1 text-sm">{profile.gender}</dd>
+          <dd className="mt-1 text-sm">
+            {profile.gender === "unspecified"
+              ? "Prefer not to say"
+              : profile.gender === "woman"
+                ? "Woman"
+                : "Man"}
+          </dd>
         </div>
       </dl>
       <section className="space-y-3">

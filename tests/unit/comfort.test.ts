@@ -2,13 +2,11 @@ import { describe, expect, it } from "vitest";
 import { formatMix } from "../../lib/comfort";
 
 describe("R-COMFORT-6 member mix display", () => {
-  it("uses singular labels for one brother and one sister", () => {
-    expect(formatMix({ brothers: 1, sisters: 1 })).toBe("1 brother · 1 sister");
+  it("uses singular labels for one woman and one man", () => {
+    expect(formatMix({ men: 1, women: 1 })).toBe("1 woman · 1 man");
   });
 
   it("pluralizes group counts", () => {
-    expect(formatMix({ brothers: 2, sisters: 3 })).toBe(
-      "2 brothers · 3 sisters",
-    );
+    expect(formatMix({ men: 2, women: 3 })).toBe("3 women · 2 men");
   });
 });

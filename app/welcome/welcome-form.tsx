@@ -10,7 +10,7 @@ type WelcomeFormProps = {
     last_name: string;
     phone: string;
     venmo: string | null;
-    gender?: "brother" | "sister" | null;
+    gender?: "man" | "woman" | "unspecified" | null;
   };
   submitLabel?: string;
   genderLocked?: boolean;
@@ -42,10 +42,10 @@ export function WelcomeForm({
       <div className="space-y-2">
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-muted">
-            Are you a brother or a sister?
+            Which describes you?
           </legend>
-          <div className="grid grid-cols-2 gap-2">
-            {(["brother", "sister"] as const).map((gender) => (
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(["woman", "man", "unspecified"] as const).map((gender) => (
               <label
                 className={`flex min-h-14 cursor-pointer items-center justify-center rounded-[10px] border font-medium ${
                   (state.values?.gender ?? initialValues?.gender) === gender
@@ -65,12 +65,16 @@ export function WelcomeForm({
                   type="radio"
                   value={gender}
                 />
-                {gender === "brother" ? "Brother" : "Sister"}
+                {gender === "woman"
+                  ? "Woman"
+                  : gender === "man"
+                    ? "Man"
+                    : "Prefer not to say"}
               </label>
             ))}
           </div>
           <p className="text-sm text-muted">
-            So rides can be sisters-only or brothers-only.
+            Lets riders offer women-only or men-only rides.
           </p>
           {state.errors?.gender ? (
             <p className="text-sm text-red-700" role="alert">

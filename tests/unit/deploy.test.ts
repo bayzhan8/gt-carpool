@@ -213,6 +213,7 @@ describe("deployment planning", () => {
   it("keeps an existing cron secret and plans production variables", () => {
     const values = {
       SMTP_PASS: "resend-key",
+      REPORTS_EMAIL: "reports@gatech.edu",
       NEXT_PUBLIC_SITE_URL: "https://gt.example",
     };
     const preserved = planVercelEnvironment(
@@ -229,6 +230,7 @@ describe("deployment planning", () => {
     expect(preserved.cronSecret).toBe("existing-cron");
     expect(preserved.variables.map(({ key }) => key)).toEqual([
       "SMTP_PASS",
+      "REPORTS_EMAIL",
       "NEXT_PUBLIC_SITE_URL",
     ]);
     expect(preserved.variables[0]).toMatchObject({

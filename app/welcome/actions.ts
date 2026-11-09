@@ -71,8 +71,8 @@ export async function saveProfileAction(
   if (!venmo.ok) {
     errors.venmo = "Venmo handles are 5–30 letters, numbers, - or _";
   }
-  if (gender !== "brother" && gender !== "sister") {
-    errors.gender = "Choose brother or sister.";
+  if (gender !== "man" && gender !== "woman" && gender !== "unspecified") {
+    errors.gender = "Choose Woman, Man, or Prefer not to say.";
   }
 
   if (Object.keys(errors).length > 0 || !phone || !venmo.ok) {

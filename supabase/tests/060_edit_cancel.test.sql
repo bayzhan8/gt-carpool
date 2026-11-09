@@ -16,7 +16,7 @@ select u.id, u.email, 'Edit', pg_catalog.left(u.email, 1), '+14045550123'
 from auth.users as u
 where u.id between '60000000-0000-4000-8000-000000000001'::uuid
   and '60000000-0000-4000-8000-000000000004'::uuid;
-update public.profiles set gender = 'brother' where gender is null;
+update public.profiles set gender = 'man' where gender is null;
 
 insert into public.rides (id, owner_id, origin, destination, departs_at, seats, notes, status)
 values

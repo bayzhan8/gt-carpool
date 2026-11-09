@@ -14,7 +14,7 @@ values
 insert into public.profiles (id, email, first_name, last_name, phone)
 select u.id, u.email, 'Delete', pg_catalog.left(u.email, 1), '+14045550123'
 from auth.users as u;
-update public.profiles set gender = 'brother' where gender is null;
+update public.profiles set gender = 'man' where gender is null;
 
 insert into public.rides (id, owner_id, origin, destination, departs_at, seats, status)
 values
