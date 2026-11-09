@@ -25,5 +25,11 @@ matching `NEXT_PUBLIC_SUPABASE_URL` and
 
 Run the checks with `npm run lint`, `npm run typecheck`,
 `npm run format:check`, and `npm test`. Run the database tests with
-`npm run test:db` and the desktop/mobile browser tests with
-`npm run test:e2e`.
+`npm run test:db`, the concurrent database tests with `npm run test:db:race`,
+and the desktop/mobile browser tests with `npm run test:e2e`.
+
+### Database tests
+
+Run `npm run db:reset` to recreate the local schema, `npm run test:db` for
+pgTAP tests, and `npm run test:db:race` for concurrent RPC tests. Generate local
+schema types with `npm run db:types`.
