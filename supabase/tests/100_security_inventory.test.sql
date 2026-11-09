@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(15);
 
 select is(
   (select pg_catalog.array_agg(p.oid::regprocedure order by p.oid::regprocedure::text)
@@ -47,6 +47,8 @@ select is(
   array[
     'app.leave_ride_as(uuid,uuid)'::regprocedure,
     'public.cancel_ride(uuid)'::regprocedure,
+    'public.claim_notifications(integer)'::regprocedure,
+    'public.complete_notification(bigint,boolean,text)'::regprocedure,
     'public.create_ride(text,text,timestamptz,integer,text)'::regprocedure,
     'public.delete_my_account()'::regprocedure,
     'public.find_similar_rides(text,text,timestamptz)'::regprocedure,
@@ -71,6 +73,45 @@ select is(
      and (p.proconfig is null or not p.proconfig @> array['search_path=""'])),
   0,
   'R-VIS-4 every security definer function pins an empty search path'
+);
+select ok(
+  pg_catalog.has_function_privilege(
+    'service_role',
+    'public.claim_notifications(integer)'::regprocedure,
+    'EXECUTE'
+  ),
+  'R-NOTIF-1 service_role can claim notifications'
+);
+select ok(
+  pg_catalog.has_function_privilege(
+    'service_role',
+    'public.complete_notification(bigint,boolean,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'R-NOTIF-1 service_role can complete notifications'
+);
+select ok(
+  not pg_catalog.has_function_privilege(
+    'anon',
+    'public.claim_notifications(integer)'::regprocedure,
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.claim_notifications(integer)'::regprocedure,
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'anon',
+    'public.complete_notification(bigint,boolean,text)'::regprocedure,
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.complete_notification(bigint,boolean,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'R-NOTIF-1 worker RPCs are unavailable to anon and authenticated'
 );
 select ok(
   pg_catalog.has_function_privilege(
@@ -131,16 +172,16 @@ select is(
    where n.nspname = 'public'
      and c.relkind in ('r', 'p')
      and c.relrowsecurity),
-  4,
-  'R-VIS-4 row-level security is enabled on all four tables'
+  5,
+  'R-VIS-4 and R-NOTIF-1 row-level security is enabled on all five tables'
 );
 select is(
   (select pg_catalog.count(*)::integer
    from pg_catalog.pg_policies as p
    where p.schemaname = 'public'
-     and p.tablename in ('places', 'profiles', 'rides', 'ride_members')),
+     and p.tablename in ('places', 'profiles', 'rides', 'ride_members', 'notifications')),
   0,
-  'R-VIS-4 all four tables have no RLS policies'
+  'R-VIS-4 and R-NOTIF-1 public tables have no RLS policies'
 );
 select ok(
   not pg_catalog.has_schema_privilege('anon', 'app', 'USAGE'),

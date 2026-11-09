@@ -28,6 +28,9 @@ Run the checks with `npm run lint`, `npm run typecheck`,
 `npm run test:db`, the concurrent database tests with `npm run test:db:race`,
 and the desktop/mobile browser tests with `npm run test:e2e`.
 
+Ride notification emails are drained primarily with Next.js `after()` after a
+successful mutation. The scheduled Vercel cron is a daily backstop.
+
 ### Database tests
 
 Run `npm run db:reset` to recreate the local schema, `npm run test:db` for

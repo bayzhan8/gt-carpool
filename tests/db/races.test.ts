@@ -99,6 +99,28 @@ async function queryAsUser(
   }
 }
 
+async function claimAsServiceRole(limit: number): Promise<unknown[]> {
+  const client: PoolClient = await pool.connect();
+
+  try {
+    await client.query("begin");
+    await client.query("set local role service_role");
+    const result = await client.query<{ claim_notifications: unknown }>(
+      "select public.claim_notifications($1)",
+      [limit],
+    );
+    await client.query("commit");
+    const batch = result.rows[0].claim_notifications;
+    if (!Array.isArray(batch)) throw new Error("Expected a notification array");
+    return batch;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 afterEach(async () => {
   if (fixtureUserIds.length > 0) {
     await pool.query("delete from auth.users where id = any($1::uuid[])", [
@@ -213,5 +235,42 @@ describe("database concurrency invariants", () => {
     );
     expect(ownedRides.rows[0].count).toBe("5");
     expect(ownedRides.rows[0].memberships).toBe("5");
+  });
+
+  it("claims 15 notifications once across two concurrent service-role calls", async () => {
+    const recipientId = await createProfile();
+    const rideResult = await pool.query<{ id: string }>(
+      `insert into public.rides (owner_id, origin, destination, departs_at, seats)
+       values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 4)
+       returning id`,
+      [recipientId],
+    );
+    const rideId = rideResult.rows[0].id;
+
+    await pool.query(
+      `insert into public.notifications (recipient_id, ride_id, kind, actor_name)
+       select $1, $2, 'member_joined', 'Race Tester'
+       from generate_series(1, 15)`,
+      [recipientId, rideId],
+    );
+
+    const [firstBatch, secondBatch] = await Promise.all([
+      claimAsServiceRole(10),
+      claimAsServiceRole(10),
+    ]);
+    const ids = [...firstBatch, ...secondBatch].map(
+      (notification) => (notification as { id: number }).id,
+    );
+    const expected = await pool.query<{ id: number }>(
+      "select id from public.notifications where ride_id = $1 order by id",
+      [rideId],
+    );
+
+    expect(firstBatch).toHaveLength(10);
+    expect(secondBatch).toHaveLength(5);
+    expect(new Set(ids).size).toBe(15);
+    expect(ids.sort((left, right) => left - right)).toEqual(
+      expected.rows.map((notification) => Number(notification.id)),
+    );
   });
 });

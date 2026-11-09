@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { drainOutbox } from "@/lib/notifications/drain";
 import { createClient } from "@/lib/supabase/server";
 
 export async function signOutAction() {
@@ -22,6 +24,9 @@ export async function deleteAccountAction() {
     throw new Error(error.message);
   }
 
+  after(async () => {
+    await drainOutbox();
+  });
   await supabase.auth.signOut();
   redirect("/");
 }

@@ -79,7 +79,7 @@ export default async function RidePage({ params }: RidePageProps) {
           </p>
         ) : null}
       </div>
-      {ride.notes !== undefined ? (
+      {ride.notes ? (
         <section className="space-y-2">
           <h2 className="font-semibold">Notes</h2>
           <p className="whitespace-pre-wrap text-sm">{ride.notes}</p>

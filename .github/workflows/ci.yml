@@ -49,11 +49,24 @@ jobs:
           status="$(npx supabase status -o env)"
           api_url="$(printf '%s\n' "$status" | sed -n 's/^API_URL=//p')"
           publishable_key="$(printf '%s\n' "$status" | sed -n 's/^PUBLISHABLE_KEY=//p')"
+          secret_key="$(printf '%s\n' "$status" | sed -n 's/^SECRET_KEY=//p')"
+          mailpit_url="$(printf '%s\n' "$status" | sed -n 's/^MAILPIT_URL=//p')"
           test -n "$api_url"
           test -n "$publishable_key"
+          test -n "$secret_key"
+          test -n "$mailpit_url"
           {
             printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$api_url"
             printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$publishable_key"
+            printf 'SUPABASE_SECRET_KEY=%s\n' "$secret_key"
+            printf 'MAILPIT_URL=%s\n' "$mailpit_url"
+            printf 'SMTP_HOST=127.0.0.1\n'
+            printf 'SMTP_PORT=54325\n'
+            printf 'SMTP_USER=\n'
+            printf 'SMTP_PASS=\n'
+            printf 'SMTP_FROM="GT Carpool <no-reply@gt-carpool.test>"\n'
+            printf 'NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000\n'
+            printf 'CRON_SECRET=local-cron-secret\n'
           } > .env.local
       - run: npm run test:db
       - run: npm run test:db:race

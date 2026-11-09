@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireProfile } from "@/lib/auth";
 import { errorCopy } from "@/lib/errors";
+import { drainOutbox } from "@/lib/notifications/drain";
 import { atlantaLocalToInstant } from "@/lib/time";
 import { createClient } from "@/lib/supabase/server";
 
@@ -51,6 +53,9 @@ export async function updateRideAction(
     return { error: errorCopy(error.message) };
   }
 
+  after(async () => {
+    await drainOutbox();
+  });
   revalidatePath("/");
   revalidatePath("/me");
   revalidatePath(`/rides/${rideId}`);

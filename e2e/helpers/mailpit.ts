@@ -1,12 +1,14 @@
 type MailpitOptions = {
   baseUrl?: string;
   intervalMs?: number;
+  subject?: string;
   timeoutMs?: number;
 };
 
 type MailpitSummary = {
   ID: string;
   Created: string;
+  Subject: string;
   To: Array<{ Address: string }>;
 };
 
@@ -22,6 +24,7 @@ async function pollForLatestMessage(
   {
     baseUrl = process.env.MAILPIT_URL ?? defaultBaseUrl,
     intervalMs = 500,
+    subject,
     timeoutMs = 30_000,
   }: MailpitOptions = {},
 ): Promise<MailpitMessage> {
@@ -41,10 +44,12 @@ async function pollForLatestMessage(
       messages: MailpitSummary[];
     };
     const latest = payload.messages
-      .filter((message) =>
-        message.To.some(
-          (recipient) => recipient.Address.toLowerCase() === address,
-        ),
+      .filter(
+        (message) =>
+          (!subject || message.Subject === subject) &&
+          message.To.some(
+            (recipient) => recipient.Address.toLowerCase() === address,
+          ),
       )
       .sort(
         (left, right) => Date.parse(right.Created) - Date.parse(left.Created),

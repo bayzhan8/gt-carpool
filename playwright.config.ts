@@ -24,7 +24,7 @@ export default defineConfig({
     },
     {
       name: "mobile",
-      testIgnore: "**/auth-hook.spec.ts",
+      testIgnore: ["**/auth-hook.spec.ts", "**/notifications.spec.ts"],
       use: {
         ...devices["Pixel 7"],
         browserName: "chromium",

@@ -34,6 +34,70 @@ export type Database = {
   };
   public: {
     Tables: {
+      notifications: {
+        Row: {
+          actor_name: string;
+          attempts: number;
+          claimed_at: string | null;
+          created_at: string;
+          id: number;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          last_error: string | null;
+          next_attempt_at: string;
+          payload: NonNullable<Json>;
+          recipient_id: string;
+          ride_id: string;
+          sent_at: string | null;
+          status: Database["public"]["Enums"]["notification_status"];
+        };
+        ComputedFields: never;
+        Insert: {
+          actor_name: string;
+          attempts?: number;
+          claimed_at?: string | null;
+          created_at?: string;
+          id?: never;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          last_error?: string | null;
+          next_attempt_at?: string;
+          payload?: NonNullable<Json>;
+          recipient_id: string;
+          ride_id: string;
+          sent_at?: string | null;
+          status?: Database["public"]["Enums"]["notification_status"];
+        };
+        Update: {
+          actor_name?: string;
+          attempts?: number;
+          claimed_at?: string | null;
+          created_at?: string;
+          id?: never;
+          kind?: Database["public"]["Enums"]["notification_kind"];
+          last_error?: string | null;
+          next_attempt_at?: string;
+          payload?: NonNullable<Json>;
+          recipient_id?: string;
+          ride_id?: string;
+          sent_at?: string | null;
+          status?: Database["public"]["Enums"]["notification_status"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_ride_id_fkey";
+            columns: ["ride_id"];
+            isOneToOne: false;
+            referencedRelation: "rides";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       places: {
         Row: {
           address: string;
@@ -198,6 +262,11 @@ export type Database = {
     };
     Functions: {
       cancel_ride: { Args: { p_ride_id: string }; Returns: undefined };
+      claim_notifications: { Args: { p_limit?: number }; Returns: Json };
+      complete_notification: {
+        Args: { p_error?: string; p_id: number; p_ok: boolean };
+        Returns: undefined;
+      };
       create_ride: {
         Args: {
           p_departs_at: string;
@@ -246,6 +315,13 @@ export type Database = {
       };
     };
     Enums: {
+      notification_kind:
+        | "member_joined"
+        | "member_left"
+        | "ownership_transferred"
+        | "ride_cancelled"
+        | "time_changed";
+      notification_status: "pending" | "sending" | "sent" | "failed";
       place_kind: "campus" | "airport";
       ride_status: "active" | "cancelled";
     };
@@ -378,6 +454,14 @@ export const Constants = {
   },
   public: {
     Enums: {
+      notification_kind: [
+        "member_joined",
+        "member_left",
+        "ownership_transferred",
+        "ride_cancelled",
+        "time_changed",
+      ],
+      notification_status: ["pending", "sending", "sent", "failed"],
       place_kind: ["campus", "airport"],
       ride_status: ["active", "cancelled"],
     },
