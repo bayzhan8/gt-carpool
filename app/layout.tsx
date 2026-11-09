@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { getViewer } from "@/lib/auth";
+import { SiteFooter } from "./site-footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -66,6 +67,7 @@ export default async function RootLayout({
         <main className="mx-auto w-full max-w-[560px] px-4 py-8">
           {children}
         </main>
+        <SiteFooter />
       </body>
     </html>
   );

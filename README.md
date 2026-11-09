@@ -6,6 +6,7 @@ join one; `@gatech.edu` email required.
 - Spec: [docs/SPEC.md](docs/SPEC.md)
 - Plan: [docs/PLAN.md](docs/PLAN.md)
 - Research (Rice Carpool teardown): [docs/research.md](docs/research.md)
+- Deployment: [docs/DEPLOY.md](docs/DEPLOY.md)
 
 ## Develop
 

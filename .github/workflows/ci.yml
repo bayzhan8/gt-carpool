@@ -28,6 +28,8 @@ jobs:
 
   db-and-e2e:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: abcdefghijklmnopqrst
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

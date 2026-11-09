@@ -295,6 +295,46 @@ max_frequency = "5s"
 enabled = true
 uri = "pg-functions://postgres/public/hook_before_user_created"
 
+[remotes.production]
+project_id = "env(SUPABASE_PROJECT_REF)"
+
+[remotes.production.auth]
+site_url = "env(SUPABASE_SITE_URL)"
+additional_redirect_urls = [
+  "env(SUPABASE_SITE_URL)",
+  "env(SUPABASE_REDIRECT_WILDCARD)",
+]
+enable_signup = true
+
+[remotes.production.auth.rate_limit]
+email_sent = 30
+
+[remotes.production.auth.email]
+max_frequency = "30s"
+otp_length = 6
+otp_expiry = 600
+
+[remotes.production.auth.email.template.magic_link]
+subject = "Your GT Carpool code"
+content_path = "./supabase/templates/magic_link.html"
+
+[remotes.production.auth.email.template.confirmation]
+subject = "Your GT Carpool code"
+content_path = "./supabase/templates/confirmation.html"
+
+[remotes.production.auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "env(SMTP_FROM_ADDRESS)"
+sender_name = "GT Carpool"
+
+[remotes.production.auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/hook_before_user_created"
+
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 # [auth.hook.custom_access_token]
 # enabled = true

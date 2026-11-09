@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import Link from "next/link";
 import { getViewer, requireUser } from "@/lib/auth";
 import { safeNextPath } from "@/lib/next-path";
 import { WelcomeForm } from "./welcome-form";
@@ -30,6 +31,11 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
         Finish your profile to continue.
       </p>
       <WelcomeForm initialValues={profile ?? undefined} next={next} />
+      <p className="mt-4 text-sm text-muted">
+        <Link className="underline underline-offset-2" href="/privacy">
+          Only people in your ride see your number.
+        </Link>
+      </p>
     </section>
   );
 }

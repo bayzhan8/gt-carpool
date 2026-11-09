@@ -116,6 +116,11 @@ test("R-PROF-1 keeps the user on welcome when the phone is invalid", async ({
   page,
 }) => {
   await signInAs(page, uniqueGatechEmail());
+  await expect(
+    page.getByRole("link", {
+      name: "Only people in your ride see your number.",
+    }),
+  ).toHaveAttribute("href", "/privacy");
   await page.getByLabel("First name").fill("Alex");
   await page.getByLabel("Last name").fill("Parker");
   await page.getByLabel("Phone").fill("12345");
