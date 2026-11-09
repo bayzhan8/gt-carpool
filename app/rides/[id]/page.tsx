@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -11,13 +12,18 @@ type RidePageProps = {
   params: Promise<{ id: string }>;
 };
 
+export const metadata: Metadata = {
+  robots: { index: false },
+};
+
 export default async function RidePage({ params }: RidePageProps) {
   await connection();
   const { id } = await params;
-  const [ride, { user }] = await Promise.all([getRide(id), getViewer()]);
+  const ride = await getRide(id);
 
   if (!ride) notFound();
 
+  const { user } = await getViewer();
   const isMember = ride.viewer_is_member === true;
   const isOwner = ride.viewer_is_owner === true;
   const summaryMembers = (ride.members ?? []) as RideMemberSummary[];
@@ -48,9 +54,20 @@ export default async function RidePage({ params }: RidePageProps) {
         <h1 className="text-xl font-semibold">
           {ride.origin.name} → {ride.destination.name}
         </h1>
-        <p className="mt-2 text-sm text-muted">
-          {ride.origin.address} → {ride.destination.address}
-        </p>
+        <dl className="mt-4 space-y-4">
+          <div>
+            <dt className="text-xs font-medium text-muted">From</dt>
+            <dd className="mt-1 font-medium">{ride.origin.name}</dd>
+            <dd className="mt-1 text-sm text-muted">{ride.origin.address}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-muted">To</dt>
+            <dd className="mt-1 font-medium">{ride.destination.name}</dd>
+            <dd className="mt-1 text-sm text-muted">
+              {ride.destination.address}
+            </dd>
+          </div>
+        </dl>
       </div>
       <div>
         <p className="font-medium">

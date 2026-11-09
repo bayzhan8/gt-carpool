@@ -51,20 +51,44 @@ test("R-RIDE-5 posts and displays Atlanta time under the right day", async ({
   await setupMember(page, "Alex", "Parker");
   const date = next14Days(new Date())[1];
   await createRide(page, { date, time: "06:30", notes: "Flight at 9 AM" });
-  await expect(page.getByText("6:30 AM").first()).toBeVisible();
+  await expect(
+    page.getByText("6:30 AM", { exact: true }).first(),
+  ).toBeVisible();
   await page.goto(`/?day=${date}`);
-  await expect(page.getByText("6:30 AM").first()).toBeVisible();
+  await expect(
+    page.getByText("6:30 AM", { exact: true }).first(),
+  ).toBeVisible();
   await expectAccessible(page);
   await page.goto(`/?dir=campus&day=${date}`);
-  await expect(page.getByText("6:30 AM")).toHaveCount(0);
+  await expect(page.getByText("6:30 AM", { exact: true })).toHaveCount(0);
   await page.goto(`/?dir=airport&day=${date}`);
-  await expect(page.getByText("6:30 AM").first()).toBeVisible();
+  await expect(
+    page.getByText("6:30 AM", { exact: true }).first(),
+  ).toBeVisible();
   await page.goto("/?dir=airport&day=2099-01-01");
   await expect(
     page.getByText("No rides yet. Post one and others can join."),
   ).toBeVisible();
   await page.goto("/rides/new");
   await expectAccessible(page);
+});
+
+test("R-RIDE-1 returns 404 for invalid and unknown ride IDs", async ({
+  page,
+}) => {
+  for (const id of ["not-a-uuid", "00000000-0000-4000-8000-000000000000"]) {
+    const response = await page.goto(`/rides/${id}`);
+    expect(response?.status()).toBe(404);
+    await expect(
+      page.getByRole("heading", { name: "This ride isn't here." }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("It may have been cancelled, or the link is wrong."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Back to rides" }),
+    ).toHaveAttribute("href", "/");
+  }
 });
 
 test("R-VIS-1/2/3 and R-JOIN-1 show contacts only to ride members", async ({
@@ -114,12 +138,12 @@ test("R-VIS-1/2/3 and R-JOIN-1 show contacts only to ride members", async ({
     memberPage.locator('a[href="tel:+14045550123"]').first(),
   ).toBeVisible();
   await expect(
-    memberPage.getByRole("link", { name: "Venmo" }).first(),
+    memberPage.getByRole("link", { name: "@carpool5" }).first(),
   ).toHaveAttribute("href", "https://venmo.com/u/carpool5");
   await expectAccessible(memberPage);
 
-  await page.goto(rideUrl);
-  await expect(page.getByText("Casey Member")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Casey Member", { exact: true })).toBeVisible();
   await expect(page.locator('a[href^="tel:"]')).toHaveCount(2);
   await expectAccessible(page);
 
@@ -172,7 +196,7 @@ test("R-EDIT-1 rejects seats below passengers and then saves a new time", async 
   await page.getByRole("button", { name: "Increase seats" }).click();
   await page.getByLabel("Time").fill("09:30");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByText("9:30 AM")).toBeVisible();
+  await expect(page.getByText("9:30 AM", { exact: true })).toBeVisible();
   await secondContext.close();
   await thirdContext.close();
 });
@@ -184,9 +208,10 @@ test("R-DUP-1 suggests an existing ride and R-CANCEL-1 keeps it in member histor
   const date = next14Days(new Date())[1];
   await createRide(page, { date, time: "10:30", notes: "Meet at the library" });
   const rideUrl = page.url();
+  const ridePath = new URL(rideUrl).pathname;
 
   await page.goto(`/?dir=airport&day=${date}`);
-  await expect(page.getByText("10:30 AM")).toBeVisible();
+  await expect(page.getByText("10:30 AM", { exact: true })).toBeVisible();
   await page.goto(`/?dir=campus&day=invalid`);
   await expect(page.getByRole("heading", { name: "Rides" })).toBeVisible();
 
@@ -208,34 +233,94 @@ test("R-DUP-1 suggests an existing ride and R-CANCEL-1 keeps it in member histor
   await joinDialog.getByRole("button", { name: "Join" }).click();
   await expect(joinDialog).toBeHidden();
 
+  const memberProfilePage = await memberContext.newPage();
+  await memberProfilePage.goto("/me");
+  const memberRideLink = memberProfilePage.locator(`a[href="${ridePath}"]`);
+  await expect(memberRideLink).toBeVisible();
+
   await page.goto(rideUrl);
   await page.getByRole("button", { name: "Cancel ride" }).click();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Cancel ride" })
-    .click();
-  await expect(page.getByText("Cancelled")).toBeVisible();
-  const refreshedMemberPage = await memberContext.newPage();
-  await refreshedMemberPage.goto(rideUrl);
+  const cancelDialog = page.getByRole("dialog");
+  await cancelDialog.getByRole("button", { name: "Cancel ride" }).click();
+  await expect(cancelDialog).toBeHidden();
+  await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
+  await memberPage.reload();
   await expect(
-    refreshedMemberPage.getByText("Cancelled", { exact: true }),
+    memberPage.getByText("Cancelled", { exact: true }),
   ).toBeVisible();
-  await refreshedMemberPage.goto("/me");
-  const ridePath = new URL(rideUrl).pathname;
-  const canceledRideLink = refreshedMemberPage.locator(`a[href="${ridePath}"]`);
-  await expect(canceledRideLink).toBeVisible();
+
+  const documentNavigations: string[] = [];
+  memberProfilePage.on("request", (request) => {
+    if (request.isNavigationRequest()) documentNavigations.push(request.url());
+  });
+  await memberRideLink.click();
+  await expect(memberProfilePage).toHaveURL(rideUrl);
+  expect(documentNavigations).toEqual([]);
   await expect(
-    refreshedMemberPage.getByRole("heading", { name: "Past & cancelled" }),
+    memberProfilePage.getByText("Cancelled", { exact: true }),
   ).toBeVisible();
-  await expectAccessible(refreshedMemberPage);
+
+  await memberPage.goto("/me");
+  await expect(
+    memberPage.getByRole("heading", { name: "Past & cancelled" }),
+  ).toBeVisible();
+  await expectAccessible(memberPage);
 
   const anonymous = await browser.newContext();
   const anonymousPage = await anonymous.newPage();
   await anonymousPage.goto(rideUrl);
   await expect(
-    anonymousPage.getByRole("heading", { name: "Page not found" }),
+    anonymousPage.getByRole("heading", { name: "This ride isn't here." }),
   ).toBeVisible();
   await anonymous.close();
+  await memberContext.close();
+});
+
+test("R-PROF-2 deletes an account and transfers its ride to the member", async ({
+  page,
+}) => {
+  const ownerEmail = uniqueGatechEmail();
+  await signInAs(page, ownerEmail);
+  await completeProfile(page, {
+    firstName: "Alex",
+    lastName: "Owner",
+    phone: "(404) 555-0123",
+  });
+  await createRide(page, { seats: 2 });
+  const rideUrl = page.url();
+
+  const browser = page.context().browser();
+  if (!browser) throw new Error("Browser context is unavailable");
+  const memberContext = await browser.newContext();
+  const memberPage = await memberContext.newPage();
+  await setupMember(memberPage, "Casey", "Member");
+  await memberPage.goto(rideUrl);
+  await memberPage.getByRole("button", { name: "Join ride" }).click();
+  const joinDialog = memberPage.getByRole("dialog");
+  await joinDialog.getByRole("button", { name: "Join" }).click();
+  await expect(joinDialog).toBeHidden();
+
+  await page.goto("/me");
+  await page.getByRole("button", { name: "Delete account" }).click();
+  const deleteDialog = page.getByRole("dialog");
+  await expect(deleteDialog).toContainText(
+    "This removes you from your upcoming rides and deletes your profile. Type DELETE to confirm.",
+  );
+  const deleteButton = deleteDialog.getByRole("button", {
+    name: "Delete",
+    exact: true,
+  });
+  await expect(deleteButton).toBeDisabled();
+  await deleteDialog.getByLabel("Type DELETE to confirm").fill("DELETE");
+  await expect(deleteButton).toBeEnabled();
+  await deleteButton.click();
+  await expect(page).toHaveURL("/");
+
+  await memberPage.reload();
+  await expect(memberPage.getByText("Owner", { exact: true })).toBeVisible();
+
+  await signInAs(page, ownerEmail);
+  await expect(page).toHaveURL(/\/welcome(?:\?|$)/);
   await memberContext.close();
 });
 

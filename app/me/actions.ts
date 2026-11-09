@@ -13,3 +13,15 @@ export async function signOutAction() {
 
   redirect("/");
 }
+
+export async function deleteAccountAction() {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_my_account");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await supabase.auth.signOut();
+  redirect("/");
+}

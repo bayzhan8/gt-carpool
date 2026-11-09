@@ -156,10 +156,10 @@ test("captures requested M3 screen states", async ({ page }, testInfo) => {
     .getByRole("dialog")
     .getByRole("button", { name: "Cancel ride" })
     .click();
-  await expect(page.getByText("Cancelled")).toBeVisible();
+  await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
   await member.goto(firstRide);
   await member.reload();
-  await expect(member.getByText("Cancelled")).toBeVisible();
+  await expect(member.getByText("Cancelled", { exact: true })).toBeVisible();
   await member.screenshot({
     path: join(directory, `ride-cancelled-member-${size}.png`),
     fullPage: false,

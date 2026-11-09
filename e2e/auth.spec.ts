@@ -51,7 +51,7 @@ test("R-AUTH-1/4/5 returns through onboarding and stores an E.164 phone", async 
   await expect(page.getByRole("link", { name: "Your profile" })).toBeVisible();
 
   await page.goto("/me");
-  await expect(page.getByText("(404) 555-0123")).toBeVisible();
+  await expect(page.getByText("(404) 555-0123", { exact: true })).toBeVisible();
 });
 
 test("R-AUTH-1 rejects an incorrect OTP and shows the resend countdown", async ({

@@ -49,17 +49,34 @@ export function RideContacts({ members }: { members: RideContact[] }) {
                 </span>
               ) : null}
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-              <a href={`sms:${member.phone}`}>{formatUsPhone(member.phone)}</a>
-              <a href={`tel:${member.phone}`}>Call</a>
-              <a href={`mailto:${member.email}`}>{member.email}</a>
+            <div className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-muted">
+              <a
+                aria-label={`${formatUsPhone(member.phone)}. Text ${member.name}`}
+                className="inline-flex min-h-11 items-center"
+                href={`sms:${member.phone}`}
+              >
+                {formatUsPhone(member.phone)}
+              </a>
+              <a
+                className="inline-flex min-h-11 items-center"
+                href={`tel:${member.phone}`}
+              >
+                Call
+              </a>
+              <a
+                className="inline-flex min-h-11 items-center"
+                href={`mailto:${member.email}`}
+              >
+                {member.email}
+              </a>
               {member.venmo ? (
                 <a
+                  className="inline-flex min-h-11 items-center"
                   href={`https://venmo.com/u/${encodeURIComponent(member.venmo)}`}
                   rel="noopener"
                   target="_blank"
                 >
-                  Venmo
+                  @{member.venmo}
                 </a>
               ) : null}
             </div>

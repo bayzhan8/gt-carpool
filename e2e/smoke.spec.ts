@@ -24,3 +24,18 @@ test("the home page has no serious or critical accessibility violations", async 
 
   expect(violations).toEqual([]);
 });
+
+test("the home page includes the required security headers", async ({
+  page,
+}) => {
+  const response = await page.goto("/");
+  expect(response).not.toBeNull();
+  const headers = response!.headers();
+
+  expect(headers["x-frame-options"]).toBe("DENY");
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["permissions-policy"]).toBe(
+    "camera=(), microphone=(), geolocation=()",
+  );
+});

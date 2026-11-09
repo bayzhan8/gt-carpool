@@ -45,12 +45,14 @@ export default async function Home({ searchParams }: HomeProps) {
   const days = next14Days();
 
   return (
-    <section className="pb-24 sm:pb-0">
+    <section className="pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-0">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Rides</h1>
           <p className="mt-2 text-sm text-muted">
-            Find or share a ride to the airport.
+            {direction === "airport"
+              ? "Find or share a ride to the airport."
+              : "Find or share a ride back to campus."}
           </p>
         </div>
         <Link
@@ -139,12 +141,14 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>
       )}
 
-      <Link
-        className="fixed inset-x-4 bottom-4 z-10 flex min-h-11 items-center justify-center rounded-[10px] bg-primary px-4 font-medium text-white sm:static sm:mt-6 sm:hidden"
-        href="/rides/new"
-      >
-        Post a ride
-      </Link>
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-hairline bg-white/95 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:hidden">
+        <Link
+          className="mx-auto flex min-h-11 max-w-[560px] items-center justify-center rounded-[10px] bg-primary px-4 font-medium text-white"
+          href="/rides/new"
+        >
+          Post a ride
+        </Link>
+      </div>
     </section>
   );
 }

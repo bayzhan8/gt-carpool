@@ -4,6 +4,7 @@ import { myRides } from "@/lib/rides";
 import { formatUsPhone } from "@/lib/phone";
 import { RideCard } from "@/app/rides/ride-card";
 import { signOutAction } from "./actions";
+import { DeleteAccountDialog } from "./delete-account-dialog";
 import { WelcomeForm } from "@/app/welcome/welcome-form";
 
 export default async function MePage() {
@@ -78,6 +79,9 @@ export default async function MePage() {
           Sign out
         </button>
       </form>
+      <div className="border-t border-hairline pt-4">
+        <DeleteAccountDialog />
+      </div>
     </section>
   );
 }

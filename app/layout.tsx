@@ -9,9 +9,12 @@ export const metadata: Metadata = {
   title: "GT Carpool",
   description:
     "Split the Uber to the airport with other Georgia Tech students.",
+  openGraph: {
+    title: "GT Carpool",
+    description:
+      "Split the Uber to the airport with other Georgia Tech students.",
+  },
 };
-
-export const instant = false;
 
 export const viewport = {
   themeColor: "#FFFFFF",
