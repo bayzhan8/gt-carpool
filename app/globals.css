@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --white: #ffffff;
+  --surface: #f7f7f5;
+  --text: #191919;
+  --muted: #6b6b6b;
+  --hairline: #e9e9e7;
+  --primary: #191919;
+  --accent: #b3a369;
+  --radius-card: 12px;
+  --radius-button: 10px;
+}
+
+@theme inline {
+  --color-white: var(--white);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-hairline: var(--hairline);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", Roboto,
+    sans-serif;
+  --radius-card: 12px;
+  --radius-button: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--white);
+  color: var(--text);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button {
+    transition: transform 150ms ease;
+  }
+
+  button:active {
+    transform: scale(0.98);
+  }
+}

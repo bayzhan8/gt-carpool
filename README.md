@@ -6,3 +6,24 @@ join one; `@gatech.edu` email required.
 - Spec: [docs/SPEC.md](docs/SPEC.md)
 - Plan: [docs/PLAN.md](docs/PLAN.md)
 - Research (Rice Carpool teardown): [docs/research.md](docs/research.md)
+
+## Develop
+
+Prerequisites: Node.js 22 and Docker.
+
+```sh
+npm ci
+npm run db:start
+cp .env.example .env.local
+npx supabase status -o env
+npm run dev
+```
+
+Copy `API_URL` and `PUBLISHABLE_KEY` from `supabase status -o env` into the
+matching `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` entries in `.env.local`.
+
+Run the checks with `npm run lint`, `npm run typecheck`,
+`npm run format:check`, and `npm test`. Run the database tests with
+`npm run test:db` and the desktop/mobile browser tests with
+`npm run test:e2e`.
