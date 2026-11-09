@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { atlantaLocalToInstant } from "@/lib/time";
 import type { RideCard as RideCardData } from "@/lib/rides";
+import type { RideAudience } from "@/lib/rides";
 import { RideCard } from "../ride-card";
 import {
   createRideAction,
@@ -21,9 +22,14 @@ const initialState: CreateRideState = {};
 type RideFormProps = {
   initialDate: string;
   initialTime: string;
+  initialAudience: RideAudience;
 };
 
-export function RideForm({ initialDate, initialTime }: RideFormProps) {
+export function RideForm({
+  initialDate,
+  initialTime,
+  initialAudience,
+}: RideFormProps) {
   const [state, action, pending] = useActionState(
     createRideAction,
     initialState,
@@ -34,6 +40,7 @@ export function RideForm({ initialDate, initialTime }: RideFormProps) {
   const [time, setTime] = useState(initialTime);
   const [seats, setSeats] = useState(4);
   const [notes, setNotes] = useState("");
+  const [audience, setAudience] = useState<RideAudience>(initialAudience);
   const [suggestionState, setSuggestionState] = useState<{
     key: string;
     rides: RideCardData[];
@@ -184,6 +191,41 @@ export function RideForm({ initialDate, initialTime }: RideFormProps) {
         </div>
       </div>
 
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium text-muted">Who can join</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {(
+            [
+              [
+                initialAudience,
+                initialAudience === "brothers"
+                  ? "Brothers only"
+                  : "Sisters only",
+              ],
+              ["anyone", "Anyone"],
+            ] as const
+          ).map(([value, label]) => (
+            <label
+              className={`flex min-h-12 cursor-pointer items-center justify-center rounded-[10px] border text-sm font-medium ${
+                audience === value
+                  ? "border-primary bg-surface"
+                  : "border-hairline"
+              }`}
+              key={value}
+            >
+              <input
+                checked={audience === value}
+                className="sr-only"
+                name="audience"
+                onChange={() => setAudience(value)}
+                type="radio"
+                value={value}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div className="space-y-2">
         <span className="block text-sm font-medium text-muted">
           Seats, including you

@@ -5,7 +5,7 @@ import { RideForm } from "./ride-form";
 
 export default async function NewRidePage() {
   await connection();
-  await requireProfile("/rides/new");
+  const { profile } = await requireProfile("/rides/new");
   const now = new Date();
   const days = next14Days(now);
   const current = atlantaParts(now.toISOString());
@@ -30,7 +30,13 @@ export default async function NewRidePage() {
         Share your trip with other Georgia Tech students.
       </p>
       {targetDate ? (
-        <RideForm initialDate={targetDate} initialTime={targetTime} />
+        <RideForm
+          initialAudience={
+            profile.gender === "brother" ? "brothers" : "sisters"
+          }
+          initialDate={targetDate}
+          initialTime={targetTime}
+        />
       ) : null}
     </section>
   );

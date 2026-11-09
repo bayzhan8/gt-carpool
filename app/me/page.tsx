@@ -15,6 +15,10 @@ export default async function MePage() {
     (ride) => !ride.is_past && ride.status === "active",
   );
   const past = rides.filter((ride) => ride.is_past || ride.status !== "active");
+  const genderLocked = rides.some(
+    (ride) =>
+      !ride.is_past && ride.status === "active" && ride.audience !== "anyone",
+  );
 
   return (
     <section className="space-y-6">
@@ -41,6 +45,10 @@ export default async function MePage() {
           <dt className="text-xs text-muted">Venmo</dt>
           <dd className="mt-1 text-sm">{profile.venmo ?? "Not set"}</dd>
         </div>
+        <div className="px-4 py-3">
+          <dt className="text-xs text-muted">Group</dt>
+          <dd className="mt-1 text-sm">{profile.gender}</dd>
+        </div>
       </dl>
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Upcoming</h2>
@@ -66,7 +74,9 @@ export default async function MePage() {
             last_name: profile.last_name,
             phone: formatUsPhone(profile.phone),
             venmo: profile.venmo ?? "",
+            gender: profile.gender,
           }}
+          genderLocked={genderLocked}
           next="/me"
           submitLabel="Save profile"
         />

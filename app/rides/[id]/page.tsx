@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getRide, type RideContact, type RideMemberSummary } from "@/lib/rides";
 import { formatLongDate, formatTime } from "@/lib/time";
+import { audienceLabel, formatMix } from "@/lib/comfort";
 import { RideContacts } from "./ride-contacts";
 import { RideControls } from "./ride-controls";
 
@@ -49,6 +50,14 @@ export default async function RidePage({ params }: RidePageProps) {
           {formatTime(ride.departs_at)}
         </time>
         <p className="mt-2 text-muted">{formatLongDate(ride.departs_at)}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-hairline px-3 py-1 text-sm">
+          {audienceLabel(ride.audience)}
+        </span>
+        {ride.mix && ride.audience === "anyone" ? (
+          <span className="text-sm text-muted">{formatMix(ride.mix)}</span>
+        ) : null}
       </div>
       <div className="rounded-[12px] border border-hairline p-4">
         <h1 className="text-xl font-semibold">
@@ -116,6 +125,14 @@ export default async function RidePage({ params }: RidePageProps) {
         >
           Sign in with your GT email to join
         </Link>
+      ) : user &&
+        !isMember &&
+        !readOnly &&
+        ride.audience !== "anyone" &&
+        ride.viewer_can_join_audience === false ? (
+        <p className="rounded-[10px] border border-hairline px-4 py-3 text-sm text-muted">
+          This ride is for {ride.audience} only.
+        </p>
       ) : user && !readOnly ? (
         <RideControls
           isFull={ride.seats_left === 0}

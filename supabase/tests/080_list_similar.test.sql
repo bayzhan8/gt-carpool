@@ -15,6 +15,7 @@ values
   ('80000000-0000-4000-8000-000000000001', 'owner@gatech.edu', 'Owner', 'One', '+14045550123', 'owner_one'),
   ('80000000-0000-4000-8000-000000000002', 'viewer@gatech.edu', 'Viewer', 'Two', '+14045550124', 'viewer_two'),
   ('80000000-0000-4000-8000-000000000003', 'other@gatech.edu', 'Other', 'Three', '+14045550125', 'other_three');
+update public.profiles set gender = 'brother' where gender is null;
 
 insert into public.rides (id, owner_id, origin, destination, departs_at, seats, status)
 values
@@ -83,7 +84,7 @@ select is(
      public.find_similar_rides('gt', 'atl-domestic', pg_catalog.now() + interval '4 hours') -> 0
    ) as keys(k)),
   array[
-    'departs_at', 'destination', 'id', 'is_member', 'origin',
+    'audience', 'departs_at', 'destination', 'id', 'is_member', 'mix', 'origin',
     'owner_name', 'seats', 'seats_left'
   ]::text[],
   'R-DUP-1 similar ride item uses the signed-in browse shape'
@@ -112,8 +113,8 @@ select is(
   (select pg_catalog.array_agg(k order by k)
    from pg_catalog.jsonb_object_keys(public.my_rides() -> 0) as keys(k)),
   array[
-    'departs_at', 'destination', 'id', 'is_member', 'is_owner',
-    'is_past', 'origin', 'owner_name', 'seats', 'seats_left', 'status'
+    'audience', 'departs_at', 'destination', 'id', 'is_member', 'is_owner',
+    'is_past', 'mix', 'origin', 'owner_name', 'seats', 'seats_left', 'status'
   ]::text[],
   'R-AUTH-4 my ride item has the required list fields and status flags'
 );

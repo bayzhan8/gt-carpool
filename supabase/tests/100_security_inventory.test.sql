@@ -24,7 +24,7 @@ select is(
      and pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   array[
     'public.cancel_ride(uuid)'::regprocedure,
-    'public.create_ride(text,text,timestamptz,integer,text)'::regprocedure,
+    'public.create_ride(text,text,timestamptz,integer,text,text)'::regprocedure,
     'public.delete_my_account()'::regprocedure,
     'public.find_similar_rides(text,text,timestamptz)'::regprocedure,
     'public.get_my_profile()'::regprocedure,
@@ -33,8 +33,8 @@ select is(
     'public.leave_ride(uuid)'::regprocedure,
     'public.list_rides(text,date)'::regprocedure,
     'public.my_rides()'::regprocedure,
-    'public.update_ride(uuid,timestamptz,integer,text)'::regprocedure,
-    'public.upsert_my_profile(text,text,text,text)'::regprocedure
+    'public.update_ride(uuid,timestamptz,integer,text,text)'::regprocedure,
+    'public.upsert_my_profile(text,text,text,text,text)'::regprocedure
   ]::regprocedure[],
   'R-VIS-4 authenticated can execute only the listed RPCs'
 );
@@ -49,7 +49,7 @@ select is(
     'public.cancel_ride(uuid)'::regprocedure,
     'public.claim_notifications(integer)'::regprocedure,
     'public.complete_notification(bigint,boolean,text)'::regprocedure,
-    'public.create_ride(text,text,timestamptz,integer,text)'::regprocedure,
+    'public.create_ride(text,text,timestamptz,integer,text,text)'::regprocedure,
     'public.delete_my_account()'::regprocedure,
     'public.find_similar_rides(text,text,timestamptz)'::regprocedure,
     'public.get_my_profile()'::regprocedure,
@@ -59,8 +59,8 @@ select is(
     'public.leave_ride(uuid)'::regprocedure,
     'public.list_rides(text,date)'::regprocedure,
     'public.my_rides()'::regprocedure,
-    'public.update_ride(uuid,timestamptz,integer,text)'::regprocedure,
-    'public.upsert_my_profile(text,text,text,text)'::regprocedure
+    'public.update_ride(uuid,timestamptz,integer,text,text)'::regprocedure,
+    'public.upsert_my_profile(text,text,text,text,text)'::regprocedure
   ]::regprocedure[],
   'R-VIS-4 exact security definer function inventory'
 );

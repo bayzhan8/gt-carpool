@@ -12,6 +12,11 @@ export type Profile = {
   last_name: string;
   phone: string;
   venmo: string | null;
+  gender: "brother" | "sister" | null;
+};
+
+export type CompleteProfile = Omit<Profile, "gender"> & {
+  gender: "brother" | "sister";
 };
 
 export type ViewerUser = {
@@ -29,7 +34,10 @@ function isProfile(value: Json | null): value is Profile {
     typeof value.first_name === "string" &&
     typeof value.last_name === "string" &&
     typeof value.phone === "string" &&
-    (typeof value.venmo === "string" || value.venmo === null)
+    (typeof value.venmo === "string" || value.venmo === null) &&
+    (value.gender === "brother" ||
+      value.gender === "sister" ||
+      value.gender === null)
   );
 }
 
@@ -73,13 +81,14 @@ export async function requireUser(next: string): Promise<ViewerUser> {
 
 export async function requireProfile(
   next: string,
-): Promise<{ user: ViewerUser; profile: Profile }> {
+): Promise<{ user: ViewerUser; profile: CompleteProfile }> {
   const user = await requireUser(next);
   const { profile } = await getViewer();
+  const gender = profile?.gender;
 
-  if (!profile) {
+  if (!profile || !gender) {
     redirect(withNext("/welcome", next));
   }
 
-  return { user, profile };
+  return { user, profile: { ...profile, gender } };
 }

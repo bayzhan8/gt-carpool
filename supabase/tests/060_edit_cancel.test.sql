@@ -16,6 +16,7 @@ select u.id, u.email, 'Edit', pg_catalog.left(u.email, 1), '+14045550123'
 from auth.users as u
 where u.id between '60000000-0000-4000-8000-000000000001'::uuid
   and '60000000-0000-4000-8000-000000000004'::uuid;
+update public.profiles set gender = 'brother' where gender is null;
 
 insert into public.rides (id, owner_id, origin, destination, departs_at, seats, notes, status)
 values
@@ -36,7 +37,7 @@ values
 set local role authenticated;
 select set_config('request.jwt.claims', '{}', true);
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '')$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '', 'anyone')$$,
   'P0001',
   'not_authenticated',
   'R-EDIT-1 update requires authentication'
@@ -54,19 +55,19 @@ select set_config(
   true
 );
 select throws_ok(
-  $$select public.update_ride('66999999-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '')$$,
+  $$select public.update_ride('66999999-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '', 'anyone')$$,
   'P0001',
   'ride_not_found',
   'R-EDIT-1 update rejects a missing ride'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '')$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '', 'anyone')$$,
   'P0001',
   'not_owner',
   'R-EDIT-1 update rejects a non-owner'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000002', pg_catalog.now() + interval '2 hours', 3, '')$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000002', pg_catalog.now() + interval '2 hours', 3, '', 'anyone')$$,
   'P0001',
   'not_owner',
   'R-EDIT-1 owner check precedes inactive status check'
@@ -90,43 +91,43 @@ select set_config(
   true
 );
 select throws_ok(
-  $$select public.update_ride('66999999-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '')$$,
+  $$select public.update_ride('66999999-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '', 'anyone')$$,
   'P0001',
   'ride_not_found',
   'R-EDIT-1 update reports missing ride before ownership'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000002', pg_catalog.now() + interval '2 hours', 3, '')$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000002', pg_catalog.now() + interval '2 hours', 3, '', 'anyone')$$,
   'P0001',
   'ride_not_active',
   'R-EDIT-1 update rejects cancelled ride'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000003', pg_catalog.now() + interval '2 hours', 3, '')$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000003', pg_catalog.now() + interval '2 hours', 3, '', 'anyone')$$,
   'P0001',
   'ride_departed',
   'R-PAST-1 update rejects departed ride'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '1 minute', 1, pg_catalog.repeat('x', 281))$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '1 minute', 1, pg_catalog.repeat('x', 281), 'anyone')$$,
   'P0001',
   'invalid_time',
   'R-RIDE-2 update validates time before seats and notes'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 1, pg_catalog.repeat('x', 281))$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 1, pg_catalog.repeat('x', 281), 'anyone')$$,
   'P0001',
   'invalid_seats',
   'R-RIDE-1 update validates seat bounds before notes'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, pg_catalog.repeat('x', 281))$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, pg_catalog.repeat('x', 281), 'anyone')$$,
   'P0001',
   'invalid_notes',
   'R-RIDE-3 update rejects notes over 280 characters'
 );
 select throws_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 2, '')$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 2, '', 'anyone')$$,
   'P0001',
   'seats_below_members',
   'R-EDIT-1 update rejects seats below current member count'
@@ -150,7 +151,7 @@ select throws_ok(
   'R-PAST-1 cancel rejects departed ride'
 );
 select lives_ok(
-  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '  edited notes  ')$$,
+  $$select public.update_ride('66000000-0000-4000-8000-000000000001', pg_catalog.now() + interval '2 hours', 3, '  edited notes  ', 'anyone')$$,
   'R-EDIT-1 owner can update departure seats and notes'
 );
 select lives_ok(

@@ -12,7 +12,7 @@ type EditRidePageProps = {
 export default async function EditRidePage({ params }: EditRidePageProps) {
   await connection();
   const { id } = await params;
-  await requireProfile(`/rides/${id}/edit`);
+  const { profile } = await requireProfile(`/rides/${id}/edit`);
   const ride = await getRide(id);
 
   if (
@@ -33,6 +33,8 @@ export default async function EditRidePage({ params }: EditRidePageProps) {
         {ride.origin.short_name} → {ride.destination.short_name}
       </p>
       <EditRideForm
+        audience={ride.audience}
+        ownerGender={profile.gender}
         date={local.date}
         notes={ride.notes ?? ""}
         rideId={ride.id}

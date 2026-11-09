@@ -16,6 +16,11 @@ export const DB_ERROR_KEYS = [
   "invalid_notes",
   "too_many_rides",
   "seats_below_members",
+  "invalid_gender",
+  "gender_locked",
+  "audience_not_allowed",
+  "audience_restricted",
+  "audience_members_mismatch",
 ] as const;
 
 export type DbErrorKey = (typeof DB_ERROR_KEYS)[number];
@@ -38,6 +43,13 @@ const ERROR_COPY: Record<DbErrorKey, string> = {
   invalid_notes: "Notes must be 280 characters or fewer.",
   too_many_rides: "You can have at most 5 upcoming rides.",
   seats_below_members: "Seats can't be fewer than the current passengers.",
+  invalid_gender: "Choose brother or sister.",
+  gender_locked:
+    "You can't change this while you're in an upcoming brothers-only or sisters-only ride.",
+  audience_not_allowed: "Choose anyone or your own group.",
+  audience_restricted: "This ride is only open to its selected group.",
+  audience_members_mismatch:
+    "Every current member must match the selected group.",
 };
 
 const FALLBACK = "Something went wrong. Try again.";

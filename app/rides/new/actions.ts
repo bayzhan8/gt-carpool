@@ -65,6 +65,7 @@ export async function createRideAction(
     p_departs_at: localTime.iso,
     p_seats: seats,
     p_notes: notes,
+    p_audience: fieldValue(formData, "audience"),
   });
 
   if (error) {

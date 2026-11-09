@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateRideAction, type EditRideState } from "./actions";
+import type { RideAudience } from "@/lib/rides";
 
 const initialState: EditRideState = {};
 
@@ -9,12 +10,16 @@ export function EditRideForm({
   rideId,
   date,
   time,
+  audience: initialAudience,
+  ownerGender,
   seats: initialSeats,
   notes: initialNotes,
 }: {
   rideId: string;
   date: string;
   time: string;
+  audience: RideAudience;
+  ownerGender: "brother" | "sister";
   seats: number;
   notes: string;
 }) {
@@ -24,10 +29,45 @@ export function EditRideForm({
   );
   const [seats, setSeats] = useState(initialSeats);
   const [notes, setNotes] = useState(initialNotes);
+  const [audience, setAudience] = useState<RideAudience>(initialAudience);
+  const ownAudience = ownerGender === "brother" ? "brothers" : "sisters";
 
   return (
     <form action={action} className="space-y-5">
       <p className="text-sm text-muted">Atlanta time</p>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium text-muted">Who can join</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {(
+            [
+              [
+                ownAudience,
+                ownerGender === "brother" ? "Brothers only" : "Sisters only",
+              ],
+              ["anyone", "Anyone"],
+            ] as const
+          ).map(([value, label]) => (
+            <label
+              className={`flex min-h-12 cursor-pointer items-center justify-center rounded-[10px] border text-sm font-medium ${
+                audience === value
+                  ? "border-primary bg-surface"
+                  : "border-hairline"
+              }`}
+              key={value}
+            >
+              <input
+                checked={audience === value}
+                className="sr-only"
+                name="audience"
+                onChange={() => setAudience(value)}
+                type="radio"
+                value={value}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div className="grid grid-cols-2 gap-3">
         <label className="space-y-2 text-sm font-medium text-muted">
           Date

@@ -4,6 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export type RideDirection = "airport" | "campus";
 export type RideStatus = "active" | "cancelled";
+export type RideAudience = "anyone" | "brothers" | "sisters";
+
+export type RideMix = {
+  brothers: number;
+  sisters: number;
+};
 
 export type RidePlaceCard = {
   slug: string;
@@ -13,6 +19,8 @@ export type RidePlaceCard = {
 export type RideCard = {
   id: string;
   departs_at: string;
+  audience: RideAudience;
+  mix?: RideMix;
   origin: RidePlaceCard;
   destination: RidePlaceCard;
   seats: number;
@@ -46,6 +54,9 @@ export type RideContact = {
 export type RideDetail = {
   id: string;
   departs_at: string;
+  audience: RideAudience;
+  viewer_can_join_audience?: boolean;
+  mix?: RideMix;
   status: RideStatus;
   is_past: boolean;
   seats: number;

@@ -15,6 +15,7 @@ values
   ('70000000-0000-4000-8000-000000000001', 'owner@gatech.edu', 'Alex', 'Owner', '+14045550123', 'alex_owner'),
   ('70000000-0000-4000-8000-000000000002', 'member@gatech.edu', 'Taylor', 'Parker', '+14045550124', 'taylor_handle'),
   ('70000000-0000-4000-8000-000000000003', 'outsider@gatech.edu', 'Chris', 'Smith', '+14045550125', 'chris_handle');
+update public.profiles set gender = 'brother' where gender is null;
 
 insert into public.rides (id, owner_id, origin, destination, departs_at, seats, notes, status)
 values
@@ -41,7 +42,7 @@ select set_config('request.jwt.claims', '{}', true);
 select is(
   (select pg_catalog.array_agg(k order by k)
    from pg_catalog.jsonb_object_keys(public.get_ride('77000000-0000-4000-8000-000000000001')) as keys(k)),
-  array['departs_at', 'destination', 'id', 'is_past', 'origin', 'seats', 'seats_left', 'status']::text[],
+  array['audience', 'departs_at', 'destination', 'id', 'is_past', 'origin', 'seats', 'seats_left', 'status']::text[],
   'R-VIS-1 signed-out ride response has exactly the public key set'
 );
 select ok(
@@ -79,7 +80,7 @@ select is(
    from pg_catalog.jsonb_object_keys(
      (public.list_rides('airport', '2026-12-11'::date) -> 0)
    ) as keys(k)),
-  array['departs_at', 'destination', 'id', 'origin', 'seats', 'seats_left']::text[],
+  array['audience', 'departs_at', 'destination', 'id', 'origin', 'seats', 'seats_left']::text[],
   'R-VIS-1 signed-out list item has exactly its public key set'
 );
 select ok(
@@ -139,8 +140,8 @@ select is(
   (select pg_catalog.array_agg(k order by k)
    from pg_catalog.jsonb_object_keys(public.get_ride('77000000-0000-4000-8000-000000000001')) as keys(k)),
   array[
-    'departs_at', 'destination', 'id', 'is_past', 'members', 'notes',
-    'origin', 'seats', 'seats_left', 'status', 'viewer_is_member', 'viewer_is_owner'
+    'audience', 'departs_at', 'destination', 'id', 'is_past', 'members', 'mix', 'notes',
+    'origin', 'seats', 'seats_left', 'status', 'viewer_can_join_audience', 'viewer_is_member', 'viewer_is_owner'
   ]::text[],
   'R-VIS-2 signed-in non-member ride response has exactly its key set'
 );
@@ -173,7 +174,7 @@ select is(
      (public.list_rides('airport', '2026-12-11'::date) -> 0)
    ) as keys(k)),
   array[
-    'departs_at', 'destination', 'id', 'is_member', 'origin',
+    'audience', 'departs_at', 'destination', 'id', 'is_member', 'mix', 'origin',
     'owner_name', 'seats', 'seats_left'
   ]::text[],
   'R-VIS-2 signed-in list item has exactly its key set'

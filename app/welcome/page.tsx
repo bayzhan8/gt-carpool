@@ -19,7 +19,7 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
     await requireUser(rawNext ? next : "/welcome");
   }
 
-  if (profile) {
+  if (profile?.gender) {
     redirect(next === "/welcome" ? "/" : next);
   }
 
@@ -29,7 +29,7 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
       <p className="mt-2 text-sm text-muted">
         Finish your profile to continue.
       </p>
-      <WelcomeForm next={next} />
+      <WelcomeForm initialValues={profile ?? undefined} next={next} />
     </section>
   );
 }

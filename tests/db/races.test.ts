@@ -62,8 +62,8 @@ async function createProfile(): Promise<string> {
     [id, email],
   );
   await pool.query(
-    `insert into public.profiles (id, email, first_name, last_name, phone)
-     values ($1, $2, 'Race', 'Tester', '+14045550123')`,
+    `insert into public.profiles (id, email, first_name, last_name, phone, gender)
+     values ($1, $2, 'Race', 'Tester', '+14045550123', 'brother')`,
     [id, email],
   );
 
@@ -202,9 +202,9 @@ describe("database concurrency invariants", () => {
         queryAsUser(
           ownerId,
           `select public.create_ride(
-             $1::text, $2::text, $3::timestamptz, $4::integer, $5::text
+             $1::text, $2::text, $3::timestamptz, $4::integer, $5::text, $6::text
            )`,
-          ["gt", "atl-domestic", departsAt.toISOString(), 4, ""],
+          ["gt", "atl-domestic", departsAt.toISOString(), 4, "", "anyone"],
         ),
       ),
     );
@@ -237,6 +237,64 @@ describe("database concurrency invariants", () => {
     expect(ownedRides.rows[0].memberships).toBe("5");
   });
 
+  it("serializes a restricted-audience edit against a mismatched join 20 times", async () => {
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const ownerId = await createProfile();
+      const brotherId = await createProfile();
+      await pool.query(
+        "update public.profiles set gender = 'sister' where id = $1",
+        [ownerId],
+      );
+      const rideResult = await pool.query<{ id: string }>(
+        `insert into public.rides (owner_id, origin, destination, departs_at, seats)
+         values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 4)
+         returning id`,
+        [ownerId],
+      );
+      const rideId = rideResult.rows[0].id;
+      await pool.query(
+        "insert into public.ride_members (ride_id, user_id) values ($1, $2)",
+        [rideId, ownerId],
+      );
+
+      const [edit, join] = await Promise.all([
+        queryAsUser(
+          ownerId,
+          "select public.update_ride($1::uuid, now() + interval '1 day', 4, '', 'sisters')",
+          [rideId],
+        ),
+        queryAsUser(brotherId, "select public.join_ride($1::uuid)", [rideId]),
+      ]);
+      const state = await pool.query<{
+        audience: string;
+        has_brother: boolean;
+      }>(
+        `select r.audience::text as audience,
+                exists (
+                  select 1 from public.ride_members rm
+                  join public.profiles p on p.id = rm.user_id
+                  where rm.ride_id = r.id and p.gender = 'brother'
+                ) as has_brother
+         from public.rides r where r.id = $1`,
+        [rideId],
+      );
+      const failures = [edit, join].filter(
+        (outcome): outcome is Extract<QueryOutcome, { success: false }> =>
+          !outcome.success,
+      );
+
+      expect(state.rows[0]).not.toEqual({
+        audience: "sisters",
+        has_brother: true,
+      });
+      expect(failures).toHaveLength(1);
+      expect(failures[0].code).toBe("P0001");
+      expect(["audience_members_mismatch", "audience_restricted"]).toContain(
+        failures[0].message,
+      );
+    }
+  });
+
   it("claims 15 notifications once across two concurrent service-role calls", async () => {
     const recipientId = await createProfile();
     const rideResult = await pool.query<{ id: string }>(
@@ -266,8 +324,9 @@ describe("database concurrency invariants", () => {
       [rideId],
     );
 
-    expect(firstBatch).toHaveLength(10);
-    expect(secondBatch).toHaveLength(5);
+    expect(
+      [firstBatch.length, secondBatch.length].sort((a, b) => a - b),
+    ).toEqual([5, 10]);
     expect(new Set(ids).size).toBe(15);
     expect(ids.sort((left, right) => left - right)).toEqual(
       expected.rows.map((notification) => Number(notification.id)),

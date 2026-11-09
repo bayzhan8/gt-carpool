@@ -9,9 +9,11 @@ type WelcomeFormProps = {
     first_name: string;
     last_name: string;
     phone: string;
-    venmo: string;
+    venmo: string | null;
+    gender?: "brother" | "sister" | null;
   };
   submitLabel?: string;
+  genderLocked?: boolean;
 };
 
 const initialState: WelcomeState = {};
@@ -20,6 +22,7 @@ export function WelcomeForm({
   next,
   initialValues,
   submitLabel = "Continue",
+  genderLocked = false,
 }: WelcomeFormProps) {
   const [state, action, pending] = useActionState(
     saveProfileAction,
@@ -29,6 +32,58 @@ export function WelcomeForm({
   return (
     <form action={action} className="mt-8 space-y-5">
       <input name="next" type="hidden" value={next} />
+      {genderLocked ? (
+        <input
+          name="gender"
+          type="hidden"
+          value={initialValues?.gender ?? ""}
+        />
+      ) : null}
+      <div className="space-y-2">
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-muted">
+            Are you a brother or a sister?
+          </legend>
+          <div className="grid grid-cols-2 gap-2">
+            {(["brother", "sister"] as const).map((gender) => (
+              <label
+                className={`flex min-h-14 cursor-pointer items-center justify-center rounded-[10px] border font-medium ${
+                  (state.values?.gender ?? initialValues?.gender) === gender
+                    ? "border-primary bg-surface"
+                    : "border-hairline"
+                } ${genderLocked ? "cursor-not-allowed opacity-60" : ""}`}
+                key={gender}
+              >
+                <input
+                  className="sr-only"
+                  defaultChecked={
+                    (state.values?.gender ?? initialValues?.gender) === gender
+                  }
+                  disabled={genderLocked}
+                  name="gender"
+                  required
+                  type="radio"
+                  value={gender}
+                />
+                {gender === "brother" ? "Brother" : "Sister"}
+              </label>
+            ))}
+          </div>
+          <p className="text-sm text-muted">
+            So rides can be sisters-only or brothers-only.
+          </p>
+          {state.errors?.gender ? (
+            <p className="text-sm text-red-700" role="alert">
+              {state.errors.gender}
+            </p>
+          ) : null}
+          {genderLocked ? (
+            <p className="text-sm text-muted">
+              Your group is locked while you are in a restricted upcoming ride.
+            </p>
+          ) : null}
+        </fieldset>
+      </div>
       <div className="space-y-2">
         <label
           className="block text-sm font-medium text-muted"

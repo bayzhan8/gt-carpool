@@ -15,6 +15,7 @@ export type WelcomeState = {
     last_name?: string;
     phone?: string;
     venmo?: string;
+    gender?: string;
     form?: string;
   };
   values?: {
@@ -22,6 +23,7 @@ export type WelcomeState = {
     last_name: string;
     phone: string;
     venmo: string;
+    gender: string;
   };
 };
 
@@ -38,6 +40,7 @@ export async function saveProfileAction(
   const lastName = fieldValue(formData, "last_name").trim();
   const rawPhone = fieldValue(formData, "phone");
   const rawVenmo = fieldValue(formData, "venmo");
+  const gender = fieldValue(formData, "gender");
   const next = safeNextPath(fieldValue(formData, "next"));
 
   await requireUser(next);
@@ -47,6 +50,7 @@ export async function saveProfileAction(
     last_name: lastName,
     phone: rawPhone,
     venmo: rawVenmo,
+    gender,
   };
   const errors: NonNullable<WelcomeState["errors"]> = {};
 
@@ -67,6 +71,9 @@ export async function saveProfileAction(
   if (!venmo.ok) {
     errors.venmo = "Venmo handles are 5–30 letters, numbers, - or _";
   }
+  if (gender !== "brother" && gender !== "sister") {
+    errors.gender = "Choose brother or sister.";
+  }
 
   if (Object.keys(errors).length > 0 || !phone || !venmo.ok) {
     return { errors, values };
@@ -78,6 +85,7 @@ export async function saveProfileAction(
     p_last_name: lastName,
     p_phone: phone,
     p_venmo: venmo.value ?? "",
+    p_gender: gender,
   });
 
   if (error) {

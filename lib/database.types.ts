@@ -131,6 +131,7 @@ export type Database = {
           created_at: string;
           email: string;
           first_name: string;
+          gender: Database["public"]["Enums"]["gender"] | null;
           id: string;
           last_name: string;
           phone: string;
@@ -142,6 +143,7 @@ export type Database = {
           created_at?: string;
           email: string;
           first_name: string;
+          gender?: Database["public"]["Enums"]["gender"] | null;
           id: string;
           last_name: string;
           phone: string;
@@ -152,6 +154,7 @@ export type Database = {
           created_at?: string;
           email?: string;
           first_name?: string;
+          gender?: Database["public"]["Enums"]["gender"] | null;
           id?: string;
           last_name?: string;
           phone?: string;
@@ -196,6 +199,7 @@ export type Database = {
       };
       rides: {
         Row: {
+          audience: Database["public"]["Enums"]["ride_audience"];
           created_at: string;
           departs_at: string;
           destination: string;
@@ -209,6 +213,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          audience?: Database["public"]["Enums"]["ride_audience"];
           created_at?: string;
           departs_at: string;
           destination: string;
@@ -221,6 +226,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          audience?: Database["public"]["Enums"]["ride_audience"];
           created_at?: string;
           departs_at?: string;
           destination?: string;
@@ -269,6 +275,7 @@ export type Database = {
       };
       create_ride: {
         Args: {
+          p_audience: string;
           p_departs_at: string;
           p_destination: string;
           p_notes: string;
@@ -297,6 +304,7 @@ export type Database = {
       my_rides: { Args: Record<PropertyKey, never>; Returns: Json };
       update_ride: {
         Args: {
+          p_audience: string;
           p_departs_at: string;
           p_notes: string;
           p_ride_id: string;
@@ -307,6 +315,7 @@ export type Database = {
       upsert_my_profile: {
         Args: {
           p_first_name: string;
+          p_gender: string;
           p_last_name: string;
           p_phone: string;
           p_venmo: string;
@@ -315,6 +324,7 @@ export type Database = {
       };
     };
     Enums: {
+      gender: "brother" | "sister";
       notification_kind:
         | "member_joined"
         | "member_left"
@@ -323,6 +333,7 @@ export type Database = {
         | "time_changed";
       notification_status: "pending" | "sending" | "sent" | "failed";
       place_kind: "campus" | "airport";
+      ride_audience: "anyone" | "brothers" | "sisters";
       ride_status: "active" | "cancelled";
     };
     CompositeTypes: {
@@ -454,6 +465,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      gender: ["brother", "sister"],
       notification_kind: [
         "member_joined",
         "member_left",
@@ -463,6 +475,7 @@ export const Constants = {
       ],
       notification_status: ["pending", "sending", "sent", "failed"],
       place_kind: ["campus", "airport"],
+      ride_audience: ["anyone", "brothers", "sisters"],
       ride_status: ["active", "cancelled"],
     },
   },

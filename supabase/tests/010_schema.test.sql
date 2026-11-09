@@ -43,6 +43,7 @@ values (
   '+14045550123',
   'schema_user'
 );
+update public.profiles set gender = 'brother' where gender is null;
 
 select throws_ok(
   $$update public.profiles set email = 'SCHEMA@gatech.edu'

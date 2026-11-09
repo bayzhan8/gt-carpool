@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatTime } from "@/lib/time";
 import type { MyRide, RideCard as RideCardData } from "@/lib/rides";
+import { audienceLabel, formatMix } from "@/lib/comfort";
 
 export function RideCard({ ride }: { ride: RideCardData | MyRide }) {
   const isProfileCard = "status" in ride;
@@ -59,6 +60,14 @@ export function RideCard({ ride }: { ride: RideCardData | MyRide }) {
       ) : ride.owner_name ? (
         <p className="mt-1 text-sm text-muted">{ride.owner_name}</p>
       ) : null}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-hairline px-2 py-1 text-xs">
+          {audienceLabel(ride.audience)}
+        </span>
+        {ride.mix && ride.audience === "anyone" ? (
+          <span className="text-xs text-muted">{formatMix(ride.mix)}</span>
+        ) : null}
+      </div>
     </Link>
   );
 }
