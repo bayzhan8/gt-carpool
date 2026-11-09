@@ -215,13 +215,19 @@ test("R-DUP-1 suggests an existing ride and R-CANCEL-1 keeps it in member histor
     .getByRole("button", { name: "Cancel ride" })
     .click();
   await expect(page.getByText("Cancelled")).toBeVisible();
-  await memberPage.reload();
-  await expect(memberPage.getByText("Cancelled")).toBeVisible();
-  await memberPage.goto("/me");
+  const refreshedMemberPage = await memberContext.newPage();
+  await refreshedMemberPage.goto(rideUrl);
   await expect(
-    memberPage.getByRole("heading", { name: "Past & cancelled" }),
+    refreshedMemberPage.getByText("Cancelled", { exact: true }),
   ).toBeVisible();
-  await expectAccessible(memberPage);
+  await refreshedMemberPage.goto("/me");
+  const ridePath = new URL(rideUrl).pathname;
+  const canceledRideLink = refreshedMemberPage.locator(`a[href="${ridePath}"]`);
+  await expect(canceledRideLink).toBeVisible();
+  await expect(
+    refreshedMemberPage.getByRole("heading", { name: "Past & cancelled" }),
+  ).toBeVisible();
+  await expectAccessible(refreshedMemberPage);
 
   const anonymous = await browser.newContext();
   const anonymousPage = await anonymous.newPage();
