@@ -10,7 +10,7 @@ import {
 import { completeProfile, signInAs, uniqueGatechEmail } from "./helpers/auth";
 import { getLatestEmailBody } from "./helpers/mailpit";
 
-const artifactDirectory = "/home/ubuntu/artifacts/m5";
+const artifactDirectory = process.env.M5_ARTIFACT_DIR;
 
 async function setupMember(
   page: Page,
@@ -37,6 +37,7 @@ async function createRide(page: Page) {
 }
 
 function saveRenderedBodies(rideId: string) {
+  if (!artifactDirectory) return;
   mkdirSync(artifactDirectory, { recursive: true });
   const kinds: NotificationKind[] = [
     "member_joined",
@@ -128,11 +129,13 @@ test("R-NOTIF-1 sends ride notifications and protects the cron endpoint", async 
   });
   expect(authorized.status()).toBe(200);
 
-  saveRenderedBodies(rideId);
-  await page.goto(process.env.MAILPIT_URL ?? "http://127.0.0.1:54324");
-  await page.screenshot({
-    path: join(artifactDirectory, "mailpit-messages.png"),
-    fullPage: true,
-  });
+  if (artifactDirectory) {
+    saveRenderedBodies(rideId);
+    await page.goto(process.env.MAILPIT_URL ?? "http://127.0.0.1:54324");
+    await page.screenshot({
+      path: join(artifactDirectory, "mailpit-messages.png"),
+      fullPage: true,
+    });
+  }
   await memberContext.close();
 });
