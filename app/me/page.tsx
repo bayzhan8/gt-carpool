@@ -1,10 +1,19 @@
 import { connection } from "next/server";
 import { requireProfile } from "@/lib/auth";
+import { myRides } from "@/lib/rides";
+import { formatUsPhone } from "@/lib/phone";
+import { RideCard } from "@/app/rides/ride-card";
 import { signOutAction } from "./actions";
+import { WelcomeForm } from "@/app/welcome/welcome-form";
 
 export default async function MePage() {
   await connection();
   const { user, profile } = await requireProfile("/me");
+  const rides = await myRides();
+  const upcoming = rides.filter(
+    (ride) => !ride.is_past && ride.status === "active",
+  );
+  const past = rides.filter((ride) => ride.is_past || ride.status !== "active");
 
   return (
     <section className="space-y-6">
@@ -25,13 +34,42 @@ export default async function MePage() {
         </div>
         <div className="px-4 py-3">
           <dt className="text-xs text-muted">Phone</dt>
-          <dd className="mt-1 text-sm">{profile.phone}</dd>
+          <dd className="mt-1 text-sm">{formatUsPhone(profile.phone)}</dd>
         </div>
         <div className="px-4 py-3">
           <dt className="text-xs text-muted">Venmo</dt>
           <dd className="mt-1 text-sm">{profile.venmo ?? "Not set"}</dd>
         </div>
       </dl>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Upcoming</h2>
+        {upcoming.length ? (
+          upcoming.map((ride) => <RideCard key={ride.id} ride={ride} />)
+        ) : (
+          <p className="text-sm text-muted">No upcoming rides.</p>
+        )}
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Past &amp; cancelled</h2>
+        {past.length ? (
+          past.map((ride) => <RideCard key={ride.id} ride={ride} />)
+        ) : (
+          <p className="text-sm text-muted">No past rides.</p>
+        )}
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Edit profile</h2>
+        <WelcomeForm
+          initialValues={{
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            phone: formatUsPhone(profile.phone),
+            venmo: profile.venmo ?? "",
+          }}
+          next="/me"
+          submitLabel="Save profile"
+        />
+      </section>
       <form action={signOutAction}>
         <button
           className="min-h-11 w-full rounded-[10px] border border-hairline px-4 font-medium hover:bg-surface"

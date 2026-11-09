@@ -5,11 +5,22 @@ import { saveProfileAction, type WelcomeState } from "./actions";
 
 type WelcomeFormProps = {
   next: string;
+  initialValues?: {
+    first_name: string;
+    last_name: string;
+    phone: string;
+    venmo: string;
+  };
+  submitLabel?: string;
 };
 
 const initialState: WelcomeState = {};
 
-export function WelcomeForm({ next }: WelcomeFormProps) {
+export function WelcomeForm({
+  next,
+  initialValues,
+  submitLabel = "Continue",
+}: WelcomeFormProps) {
   const [state, action, pending] = useActionState(
     saveProfileAction,
     initialState,
@@ -28,7 +39,9 @@ export function WelcomeForm({ next }: WelcomeFormProps) {
         <input
           autoComplete="given-name"
           className="min-h-11 w-full rounded-[10px] border border-hairline px-3 text-base focus-visible:border-accent"
-          defaultValue={state.values?.first_name ?? ""}
+          defaultValue={
+            state.values?.first_name ?? initialValues?.first_name ?? ""
+          }
           id="first_name"
           maxLength={40}
           name="first_name"
@@ -50,7 +63,9 @@ export function WelcomeForm({ next }: WelcomeFormProps) {
         <input
           autoComplete="family-name"
           className="min-h-11 w-full rounded-[10px] border border-hairline px-3 text-base focus-visible:border-accent"
-          defaultValue={state.values?.last_name ?? ""}
+          defaultValue={
+            state.values?.last_name ?? initialValues?.last_name ?? ""
+          }
           id="last_name"
           maxLength={40}
           name="last_name"
@@ -69,7 +84,7 @@ export function WelcomeForm({ next }: WelcomeFormProps) {
         <input
           autoComplete="tel-national"
           className="min-h-11 w-full rounded-[10px] border border-hairline px-3 text-base focus-visible:border-accent"
-          defaultValue={state.values?.phone ?? ""}
+          defaultValue={state.values?.phone ?? initialValues?.phone ?? ""}
           id="phone"
           name="phone"
           required
@@ -88,7 +103,7 @@ export function WelcomeForm({ next }: WelcomeFormProps) {
         <input
           autoComplete="off"
           className="min-h-11 w-full rounded-[10px] border border-hairline px-3 text-base focus-visible:border-accent"
-          defaultValue={state.values?.venmo ?? ""}
+          defaultValue={state.values?.venmo ?? initialValues?.venmo ?? ""}
           id="venmo"
           name="venmo"
           placeholder="@handle"
@@ -109,7 +124,7 @@ export function WelcomeForm({ next }: WelcomeFormProps) {
         disabled={pending}
         type="submit"
       >
-        {pending ? "Saving…" : "Continue"}
+        {pending ? "Saving…" : submitLabel}
       </button>
     </form>
   );

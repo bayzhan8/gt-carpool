@@ -24,6 +24,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run format:check
       - run: npm test
+      - run: npm run test:unit:tz
 
   db-and-e2e:
     runs-on: ubuntu-latest

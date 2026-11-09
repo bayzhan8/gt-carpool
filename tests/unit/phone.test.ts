@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeUsPhone } from "../../lib/phone";
+import { formatUsPhone, normalizeUsPhone } from "../../lib/phone";
 
 describe("normalizeUsPhone", () => {
   it.each([
@@ -20,5 +20,15 @@ describe("normalizeUsPhone", () => {
     { input: "" },
   ])("R-PROF-1 rejects invalid US phone input: $input", ({ input }) => {
     expect(normalizeUsPhone(input)).toBeNull();
+  });
+});
+
+describe("formatUsPhone", () => {
+  it("R-PROF-1 formats an E.164 phone number for display", () => {
+    expect(formatUsPhone("+14045550123")).toBe("(404) 555-0123");
+  });
+
+  it("preserves values that are not valid E.164 US numbers", () => {
+    expect(formatUsPhone("not-a-phone")).toBe("not-a-phone");
   });
 });

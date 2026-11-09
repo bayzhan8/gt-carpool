@@ -44,7 +44,7 @@ export default async function RootLayout({
             </Link>
             {user ? (
               <Link
-                aria-label="Your profile"
+                aria-label={`${initials} Your profile`}
                 className="flex size-8 items-center justify-center rounded-full bg-surface text-xs font-semibold"
                 href="/me"
               >

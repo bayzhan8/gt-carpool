@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { errorCopy } from "@/lib/errors";
@@ -83,5 +84,7 @@ export async function saveProfileAction(
     return { errors: { form: errorCopy(error.message) }, values };
   }
 
+  revalidatePath("/");
+  revalidatePath("/me");
   redirect(next === "/welcome" ? "/" : next);
 }
