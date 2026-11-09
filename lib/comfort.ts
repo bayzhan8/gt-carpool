@@ -6,8 +6,13 @@ export function audienceLabel(audience: RideAudience): string {
   return "Anyone";
 }
 
-export function formatMix(mix: RideMix): string {
-  const men = `${mix.men} ${mix.men === 1 ? "man" : "men"}`;
-  const women = `${mix.women} ${mix.women === 1 ? "woman" : "women"}`;
-  return `${women} · ${men}`;
+export function formatMix(mix: RideMix): string | null {
+  const parts: string[] = [];
+  if (mix.women > 0) {
+    parts.push(`${mix.women} ${mix.women === 1 ? "woman" : "women"}`);
+  }
+  if (mix.men > 0) {
+    parts.push(`${mix.men} ${mix.men === 1 ? "man" : "men"}`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
 }

@@ -32,6 +32,8 @@ export default async function RidePage({ params }: RidePageProps) {
   const summaryMembers = (ride.members ?? []) as RideMemberSummary[];
   const contactMembers = isMember ? (ride.members as RideContact[]) : undefined;
   const readOnly = ride.is_past || ride.status === "cancelled";
+  const mixLabel =
+    ride.mix && ride.audience === "anyone" ? formatMix(ride.mix) : null;
 
   return (
     <section className="space-y-7">
@@ -57,8 +59,8 @@ export default async function RidePage({ params }: RidePageProps) {
         <span className="rounded-full border border-hairline px-3 py-1 text-sm">
           {audienceLabel(ride.audience)}
         </span>
-        {ride.mix && ride.audience === "anyone" ? (
-          <span className="text-sm text-muted">{formatMix(ride.mix)}</span>
+        {mixLabel ? (
+          <span className="text-sm text-muted">{mixLabel}</span>
         ) : null}
       </div>
       {!readOnly ? (

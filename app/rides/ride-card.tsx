@@ -15,6 +15,8 @@ export function RideCard({ ride }: { ride: RideCardData | MyRide }) {
       : isProfileCard && ride.is_past
         ? "Departed"
         : null;
+  const mixLabel =
+    ride.mix && ride.audience === "anyone" ? formatMix(ride.mix) : null;
 
   return (
     <Link
@@ -64,8 +66,8 @@ export function RideCard({ ride }: { ride: RideCardData | MyRide }) {
         <span className="rounded-full border border-hairline px-2 py-1 text-xs">
           {audienceLabel(ride.audience)}
         </span>
-        {ride.mix && ride.audience === "anyone" ? (
-          <span className="text-xs text-muted">{formatMix(ride.mix)}</span>
+        {mixLabel ? (
+          <span className="text-xs text-muted">{mixLabel}</span>
         ) : null}
       </div>
     </Link>

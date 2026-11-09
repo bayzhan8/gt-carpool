@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 import { formatMix } from "../../lib/comfort";
 
 describe("R-COMFORT-6 member mix display", () => {
-  it("uses singular labels for one woman and one man", () => {
-    expect(formatMix({ men: 1, women: 1 })).toBe("1 woman · 1 man");
+  it("omits the mix when there are no men or women", () => {
+    expect(formatMix({ men: 0, women: 0 })).toBeNull();
   });
 
-  it("pluralizes group counts", () => {
-    expect(formatMix({ men: 2, women: 3 })).toBe("3 women · 2 men");
+  it("renders only the nonzero group", () => {
+    expect(formatMix({ men: 3, women: 0 })).toBe("3 men");
+    expect(formatMix({ men: 0, women: 1 })).toBe("1 woman");
+  });
+
+  it("renders both groups with singular and plural labels", () => {
+    expect(formatMix({ men: 2, women: 1 })).toBe("1 woman · 2 men");
   });
 });
