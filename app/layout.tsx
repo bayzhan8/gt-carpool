@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
+import { getViewer } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,11 +11,23 @@ export const metadata: Metadata = {
     "Split the Uber to the airport with other Georgia Tech students.",
 };
 
+export const instant = false;
+
 export const viewport = {
   themeColor: "#FFFFFF",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  await connection();
+  const { user, profile } = await getViewer();
+  const initials = profile
+    ? `${profile.first_name.charAt(0)}${profile.last_name.charAt(0)}`.toUpperCase()
+    : user?.email.charAt(0).toUpperCase();
+
   return (
     <html lang="en">
       <body className="min-h-screen">
@@ -28,12 +42,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             >
               GT Carpool
             </Link>
-            <Link
-              className="flex min-h-11 items-center px-2 text-sm text-muted hover:text-text"
-              href="/signin"
-            >
-              Sign in
-            </Link>
+            {user ? (
+              <Link
+                aria-label="Your profile"
+                className="flex size-8 items-center justify-center rounded-full bg-surface text-xs font-semibold"
+                href="/me"
+              >
+                {initials}
+              </Link>
+            ) : (
+              <Link
+                className="flex min-h-11 items-center px-2 text-sm text-muted hover:text-text"
+                href="/signin"
+              >
+                Sign in
+              </Link>
+            )}
           </nav>
         </header>
         <main className="mx-auto w-full max-w-[560px] px-4 py-8">

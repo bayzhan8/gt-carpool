@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(11);
+select plan(12);
 
 select is(
   (select pg_catalog.array_agg(p.oid::regprocedure order by p.oid::regprocedure::text)
@@ -149,6 +149,25 @@ select ok(
 select ok(
   not pg_catalog.has_schema_privilege('authenticated', 'app', 'USAGE'),
   'R-VIS-4 authenticated lacks usage on internal app schema'
+);
+select is(
+  (
+    select pg_catalog.count(*)::integer
+    from pg_catalog.pg_default_acl as default_acl
+    join pg_catalog.pg_namespace as nsp
+      on nsp.oid = default_acl.defaclnamespace
+    cross join lateral pg_catalog.aclexplode(default_acl.defaclacl) as acl
+    where default_acl.defaclrole = 'postgres'::regrole
+      and default_acl.defaclobjtype = 'f'
+      and nsp.nspname in ('public', 'app')
+      and acl.grantee in (
+        'anon'::regrole::oid,
+        'authenticated'::regrole::oid
+      )
+      and acl.privilege_type = 'EXECUTE'
+  ),
+  0,
+  'R-VIS-4 postgres defaults grant no function execute to anon or authenticated'
 );
 
 select * from finish();

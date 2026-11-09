@@ -1,10 +1,35 @@
-export default function WelcomePage() {
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { getViewer, requireUser } from "@/lib/auth";
+import { safeNextPath } from "@/lib/next-path";
+import { WelcomeForm } from "./welcome-form";
+
+type WelcomePageProps = {
+  searchParams: Promise<{ next?: string | string[] }>;
+};
+
+export default async function WelcomePage({ searchParams }: WelcomePageProps) {
+  await connection();
+  const params = await searchParams;
+  const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
+  const next = safeNextPath(rawNext);
+  const { user, profile } = await getViewer();
+
+  if (!user) {
+    await requireUser(rawNext ? next : "/welcome");
+  }
+
+  if (profile) {
+    redirect(next === "/welcome" ? "/" : next);
+  }
+
   return (
     <section>
       <h1 className="text-2xl font-semibold tracking-tight">Welcome</h1>
       <p className="mt-2 text-sm text-muted">
-        Profile setup will be available soon.
+        Finish your profile to continue.
       </p>
+      <WelcomeForm next={next} />
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 import {
@@ -6,12 +7,8 @@ import {
   getLatestOtp,
 } from "./helpers/mailpit";
 
-test("local Supabase sends an OTP to Mailpit without a link", async ({
-  browserName,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop");
-  expect(browserName).toBe("chromium");
-  const email = "smoke@gatech.edu";
+test("R-AUTH-1 local Supabase sends an OTP to Mailpit without a link", async () => {
+  const email = `mailpit-${randomUUID()}@gatech.edu`;
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
