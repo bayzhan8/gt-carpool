@@ -7,10 +7,13 @@ export async function pickTime(page: Page, value: string): Promise<void> {
   const dialog = page.getByRole("dialog", { name: "Departure time" });
   await expect(dialog).toBeVisible();
   const choose = async (wheel: string, option: string) => {
-    await dialog
+    const target = dialog
       .getByRole("listbox", { name: wheel })
-      .getByRole("option", { name: option, exact: true })
-      .click();
+      .getByRole("option", { name: option, exact: true });
+    await target.evaluate((element) =>
+      element.scrollIntoView({ block: "center" }),
+    );
+    await expect(target).toHaveAttribute("aria-selected", "true");
   };
   await choose("Hour", String(hour));
   await choose("Minute", String(minute).padStart(2, "0"));
