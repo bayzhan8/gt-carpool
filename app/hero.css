@@ -1,0 +1,194 @@
+/* Animated GT scene on the signed-out homepage. */
+.hero-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  stroke: #003057;
+  stroke-width: 1.6;
+}
+
+.hero-draw path,
+.hero-clouds path,
+.hero-trail {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.hero-clouds path {
+  stroke: #9aa8b5;
+}
+
+.hero-trail {
+  stroke: var(--accent);
+  stroke-dasharray: 0.02 0.04;
+}
+
+.hero-fill path {
+  stroke: none;
+}
+
+.hero-brick {
+  fill: #e7a796;
+}
+
+.hero-slate {
+  fill: #aab4c0;
+}
+
+.hero-band {
+  fill: #003057;
+}
+
+.hero-glow {
+  fill: #f4e7bf;
+}
+
+.hero-door {
+  fill: var(--accent);
+}
+
+.hero-sign circle {
+  fill: var(--accent);
+  stroke: none;
+}
+
+.hero-finial {
+  stroke: var(--accent);
+}
+
+.hero-sign text {
+  fill: #fff;
+  stroke: none;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.hero-body,
+.hero-car-body {
+  fill: var(--accent);
+}
+
+.hero-wing,
+.hero-window {
+  fill: #fff;
+}
+
+.hero-wheel {
+  fill: #003057;
+  stroke: #fff;
+  stroke-width: 1.4;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-draw path,
+  .hero-clouds path {
+    animation: hero-draw 1500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i) * 110ms);
+  }
+
+  .hero-fill {
+    animation: hero-fade 900ms ease both 1.8s;
+  }
+
+  .hero-sign {
+    animation: hero-fade 600ms ease both 2.2s;
+  }
+
+  .hero-clouds {
+    animation: hero-drift 14s ease-in-out infinite alternate 2.6s;
+  }
+
+  .hero-plane {
+    animation:
+      hero-fade 700ms ease both 2s,
+      hero-float 4.5s ease-in-out infinite alternate 2.7s;
+  }
+
+  .hero-trail {
+    animation: hero-fade 800ms ease both 2.4s;
+  }
+
+  .hero-car {
+    animation: hero-drive 7s cubic-bezier(0.45, 0, 0.3, 1) infinite 2.3s;
+    opacity: 0;
+  }
+
+  .hero-bounce {
+    animation: hero-bounce 420ms ease-in-out infinite alternate;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-car {
+    transform: translateX(260px);
+  }
+}
+
+@keyframes hero-draw {
+  from {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes hero-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hero-drift {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: translateX(14px);
+  }
+}
+
+@keyframes hero-float {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(8px, -5px);
+  }
+}
+
+@keyframes hero-bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes hero-drive {
+  0% {
+    transform: translateX(168px);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  92%,
+  100% {
+    transform: translateX(352px);
+    opacity: 0;
+  }
+}

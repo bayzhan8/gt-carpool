@@ -1,0 +1,9 @@
+{
+  "regions": ["pdx1"],
+  "crons": [
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}

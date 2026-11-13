@@ -1,0 +1,463 @@
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { Pool, type PoolClient } from "pg";
+
+type QueryOutcome =
+  { success: true } | { success: false; code?: string; message: string };
+
+function getDatabaseUrl(): string {
+  const configuredUrl = process.env.DB_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  let output: string;
+
+  try {
+    output = execFileSync("npx", ["supabase", "status", "-o", "env"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    throw new Error(
+      "DB_URL is unset and `supabase status -o env` could not provide it",
+    );
+  }
+
+  const line = output
+    .split(/\r?\n/)
+    .find((entry) => entry.startsWith("DB_URL="));
+  const rawValue = line?.slice("DB_URL=".length).trim();
+
+  if (!rawValue) {
+    throw new Error(
+      "DB_URL is unset and missing from `supabase status -o env`",
+    );
+  }
+
+  if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+    return JSON.parse(rawValue) as string;
+  }
+
+  if (rawValue.startsWith("'") && rawValue.endsWith("'")) {
+    return rawValue.slice(1, -1);
+  }
+
+  return rawValue;
+}
+
+const pool = new Pool({ connectionString: getDatabaseUrl(), max: 12 });
+const fixtureUserIds: string[] = [];
+
+async function createProfile(): Promise<string> {
+  const id = randomUUID();
+  const email = `race-${id}@gatech.edu`;
+  fixtureUserIds.push(id);
+
+  await pool.query(
+    `insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
+     values ($1, 'authenticated', 'authenticated', $2, '', now())`,
+    [id, email],
+  );
+  await pool.query(
+    `insert into public.profiles (id, email, first_name, last_name, phone, gender)
+     values ($1, $2, 'Race', 'Tester', '+14045550123', 'man')`,
+    [id, email],
+  );
+
+  return id;
+}
+
+async function queryAsUser(
+  userId: string,
+  query: string,
+  values: unknown[],
+): Promise<QueryOutcome> {
+  const client: PoolClient = await pool.connect();
+
+  try {
+    await client.query("begin");
+    await client.query("set local role authenticated");
+    await client.query("select set_config('request.jwt.claims', $1, true)", [
+      JSON.stringify({ sub: userId, role: "authenticated" }),
+    ]);
+    await client.query(query, values);
+    await client.query("commit");
+    return { success: true };
+  } catch (error) {
+    await client.query("rollback");
+    const databaseError = error as Error & { code?: string };
+    return {
+      success: false,
+      code: databaseError.code,
+      message: databaseError.message,
+    };
+  } finally {
+    client.release();
+  }
+}
+
+async function claimAsServiceRole(limit: number): Promise<unknown[]> {
+  const client: PoolClient = await pool.connect();
+
+  try {
+    await client.query("begin");
+    await client.query("set local role service_role");
+    const result = await client.query<{ claim_notifications: unknown }>(
+      "select public.claim_notifications($1)",
+      [limit],
+    );
+    await client.query("commit");
+    const batch = result.rows[0].claim_notifications;
+    if (!Array.isArray(batch)) throw new Error("Expected a notification array");
+    return batch;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+afterEach(async () => {
+  if (fixtureUserIds.length > 0) {
+    await pool.query("delete from auth.users where id = any($1::uuid[])", [
+      fixtureUserIds,
+    ]);
+    fixtureUserIds.length = 0;
+  }
+});
+
+afterAll(async () => {
+  await pool.end();
+});
+
+describe("database concurrency invariants", () => {
+  it("allows exactly one of eight concurrent joins into the last seat", async () => {
+    const ownerId = await createProfile();
+    const joinerIds = await Promise.all(
+      Array.from({ length: 8 }, () => createProfile()),
+    );
+    const rideResult = await pool.query<{ id: string }>(
+      `insert into public.rides (owner_id, origin, destination, departs_at, seats)
+       values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 2)
+       returning id`,
+      [ownerId],
+    );
+    const rideId = rideResult.rows[0].id;
+
+    await pool.query(
+      "insert into public.ride_members (ride_id, user_id) values ($1, $2)",
+      [rideId, ownerId],
+    );
+
+    const outcomes = await Promise.all(
+      joinerIds.map((userId) =>
+        queryAsUser(userId, "select public.join_ride($1::uuid)", [rideId]),
+      ),
+    );
+    const successes = outcomes.filter((outcome) => outcome.success);
+    const failures = outcomes.filter(
+      (outcome): outcome is Extract<QueryOutcome, { success: false }> =>
+        !outcome.success,
+    );
+    const members = await pool.query<{ count: string; seats: number }>(
+      `select count(rm.user_id)::text as count, r.seats
+       from public.rides as r
+       join public.ride_members as rm on rm.ride_id = r.id
+       where r.id = $1
+       group by r.id, r.seats`,
+      [rideId],
+    );
+
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(7);
+    expect(failures.map((failure) => [failure.code, failure.message])).toEqual(
+      Array.from({ length: 7 }, () => ["P0001", "ride_full"]),
+    );
+    expect(Number(members.rows[0].count)).toBe(members.rows[0].seats);
+  });
+
+  it("serializes create limits for six concurrent calls with three rides already owned", async () => {
+    const ownerId = await createProfile();
+    const departsAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    for (let index = 0; index < 3; index += 1) {
+      const rideResult = await pool.query<{ id: string }>(
+        `insert into public.rides (owner_id, origin, destination, departs_at, seats)
+         values ($1, 'gt', 'atl-domestic', $2, 4)
+         returning id`,
+        [ownerId, new Date(departsAt.getTime() + index * 60 * 60 * 1000)],
+      );
+      await pool.query(
+        "insert into public.ride_members (ride_id, user_id) values ($1, $2)",
+        [rideResult.rows[0].id, ownerId],
+      );
+    }
+
+    const outcomes = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        queryAsUser(
+          ownerId,
+          `select public.create_ride(
+             $1::text, $2::text, $3::timestamptz, $4::integer, $5::text, $6::text
+           )`,
+          ["gt", "atl-domestic", departsAt.toISOString(), 4, "", "anyone"],
+        ),
+      ),
+    );
+    const successes = outcomes.filter((outcome) => outcome.success);
+    const failures = outcomes.filter(
+      (outcome): outcome is Extract<QueryOutcome, { success: false }> =>
+        !outcome.success,
+    );
+    const ownedRides = await pool.query<{ count: string; memberships: string }>(
+      `select count(*)::text as count,
+              count(*) filter (
+                where exists (
+                  select 1 from public.ride_members as rm
+                  where rm.ride_id = r.id and rm.user_id = r.owner_id
+                )
+              )::text as memberships
+       from public.rides as r
+       where r.owner_id = $1
+         and r.status = 'active'
+         and r.departs_at > now()`,
+      [ownerId],
+    );
+
+    expect(successes).toHaveLength(2);
+    expect(failures).toHaveLength(4);
+    expect(failures.map((failure) => [failure.code, failure.message])).toEqual(
+      Array.from({ length: 4 }, () => ["P0001", "too_many_rides"]),
+    );
+    expect(ownedRides.rows[0].count).toBe("5");
+    expect(ownedRides.rows[0].memberships).toBe("5");
+  });
+
+  it("serializes a restricted-audience edit against a mismatched join 20 times", async () => {
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const ownerId = await createProfile();
+      const manId = await createProfile();
+      await pool.query(
+        "update public.profiles set gender = 'woman' where id = $1",
+        [ownerId],
+      );
+      const rideResult = await pool.query<{ id: string }>(
+        `insert into public.rides (owner_id, origin, destination, departs_at, seats)
+         values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 4)
+         returning id`,
+        [ownerId],
+      );
+      const rideId = rideResult.rows[0].id;
+      await pool.query(
+        "insert into public.ride_members (ride_id, user_id) values ($1, $2)",
+        [rideId, ownerId],
+      );
+
+      const [edit, join] = await Promise.all([
+        queryAsUser(
+          ownerId,
+          "select public.update_ride($1::uuid, now() + interval '1 day', 4, '', 'women')",
+          [rideId],
+        ),
+        queryAsUser(manId, "select public.join_ride($1::uuid)", [rideId]),
+      ]);
+      const state = await pool.query<{
+        audience: string;
+        has_man: boolean;
+      }>(
+        `select r.audience::text as audience,
+                exists (
+                  select 1 from public.ride_members rm
+                  join public.profiles p on p.id = rm.user_id
+                  where rm.ride_id = r.id and p.gender = 'man'
+                ) as has_man
+         from public.rides r where r.id = $1`,
+        [rideId],
+      );
+      const failures = [edit, join].filter(
+        (outcome): outcome is Extract<QueryOutcome, { success: false }> =>
+          !outcome.success,
+      );
+
+      expect(state.rows[0]).not.toEqual({
+        audience: "women",
+        has_man: true,
+      });
+      expect(failures).toHaveLength(1);
+      expect(failures[0].code).toBe("P0001");
+      expect(["audience_members_mismatch", "audience_restricted"]).toContain(
+        failures[0].message,
+      );
+    }
+  });
+
+  it("prevents a gender change from admitting a mismatched joiner 20 times", async () => {
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const ownerId = await createProfile();
+      const joinerId = await createProfile();
+      await pool.query(
+        "update public.profiles set gender = 'woman' where id = $1",
+        [ownerId],
+      );
+      const rideResult = await pool.query<{ id: string }>(
+        `insert into public.rides (owner_id, origin, destination, departs_at, seats, audience)
+         values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 4, 'women')
+         returning id`,
+        [ownerId],
+      );
+      const rideId = rideResult.rows[0].id;
+      await pool.query(
+        "insert into public.ride_members (ride_id, user_id) values ($1, $2)",
+        [rideId, ownerId],
+      );
+
+      await Promise.all([
+        queryAsUser(joinerId, "select public.join_ride($1::uuid)", [rideId]),
+        queryAsUser(
+          joinerId,
+          "select public.upsert_my_profile('Race', 'Tester', '+14045550123', '', 'woman')",
+          [],
+        ),
+      ]);
+      const state = await pool.query<{ has_mismatch: boolean }>(
+        `select exists (
+           select 1 from public.rides r
+           join public.ride_members rm on rm.ride_id = r.id
+           join public.profiles p on p.id = rm.user_id
+           where r.id = $1 and r.audience = 'women' and p.gender <> 'woman'
+         ) as has_mismatch`,
+        [rideId],
+      );
+
+      expect(state.rows[0].has_mismatch).toBe(false);
+    }
+  });
+
+  it("serializes set_gender against a restricted join 20 times", async () => {
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const ownerId = await createProfile();
+      const joinerId = await createProfile();
+      await pool.query(
+        "update public.profiles set gender = 'woman' where id = $1",
+        [ownerId],
+      );
+      const rideResult = await pool.query<{ id: string }>(
+        `insert into public.rides (owner_id, origin, destination, departs_at, seats, audience)
+         values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 4, 'women')
+         returning id`,
+        [ownerId],
+      );
+      const rideId = rideResult.rows[0].id;
+      await pool.query(
+        "insert into public.ride_members (ride_id, user_id) values ($1, $2)",
+        [rideId, ownerId],
+      );
+
+      const [join, change] = await Promise.all([
+        queryAsUser(joinerId, "select public.join_ride($1::uuid)", [rideId]),
+        queryAsUser(joinerId, "select public.set_gender('woman')", []),
+      ]);
+      const state = await pool.query<{ has_mismatch: boolean }>(
+        `select exists (
+           select 1 from public.rides r
+           join public.ride_members rm on rm.ride_id = r.id
+           join public.profiles p on p.id = rm.user_id
+           where r.id = $1 and r.audience = 'women' and p.gender <> 'woman'
+         ) as has_mismatch`,
+        [rideId],
+      );
+      expect(state.rows[0].has_mismatch).toBe(false);
+      expect(join.success || join.message === "audience_restricted").toBe(true);
+      expect(change.success || change.message === "gender_locked").toBe(true);
+    }
+  });
+
+  it("prevents a restricted-audience edit from racing a member gender change 20 times", async () => {
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const ownerId = await createProfile();
+      const memberId = await createProfile();
+      await pool.query(
+        "update public.profiles set gender = 'woman' where id = $1",
+        [ownerId],
+      );
+      const rideResult = await pool.query<{ id: string; departs_at: Date }>(
+        `insert into public.rides (owner_id, origin, destination, departs_at, seats)
+         values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 4)
+         returning id, departs_at`,
+        [ownerId],
+      );
+      const rideId = rideResult.rows[0].id;
+      await pool.query(
+        "insert into public.ride_members (ride_id, user_id) values ($1, $2), ($1, $3)",
+        [rideId, ownerId, memberId],
+      );
+
+      await Promise.all([
+        queryAsUser(
+          ownerId,
+          "select public.update_ride($1::uuid, $2::timestamptz, 4, '', 'women')",
+          [rideId, rideResult.rows[0].departs_at],
+        ),
+        queryAsUser(
+          memberId,
+          "select public.upsert_my_profile('Race', 'Tester', '+14045550123', '', 'woman')",
+          [],
+        ),
+      ]);
+      const state = await pool.query<{ has_mismatch: boolean }>(
+        `select exists (
+           select 1 from public.rides r
+           join public.ride_members rm on rm.ride_id = r.id
+           join public.profiles p on p.id = rm.user_id
+           where r.id = $1 and r.audience = 'women' and p.gender <> 'woman'
+         ) as has_mismatch`,
+        [rideId],
+      );
+
+      expect(state.rows[0].has_mismatch).toBe(false);
+    }
+  });
+
+  it("claims 15 notifications once across two concurrent service-role calls", async () => {
+    const recipientId = await createProfile();
+    const rideResult = await pool.query<{ id: string }>(
+      `insert into public.rides (owner_id, origin, destination, departs_at, seats)
+       values ($1, 'gt', 'atl-domestic', now() + interval '1 day', 4)
+       returning id`,
+      [recipientId],
+    );
+    const rideId = rideResult.rows[0].id;
+
+    await pool.query(
+      `insert into public.notifications (recipient_id, ride_id, kind, actor_name)
+       select $1, $2, 'member_joined', 'Race Tester'
+       from generate_series(1, 15)`,
+      [recipientId, rideId],
+    );
+
+    const [firstBatch, secondBatch] = await Promise.all([
+      claimAsServiceRole(10),
+      claimAsServiceRole(10),
+    ]);
+    const ids = [...firstBatch, ...secondBatch].map(
+      (notification) => (notification as { id: number }).id,
+    );
+    const expected = await pool.query<{ id: number }>(
+      "select id from public.notifications where ride_id = $1 order by id",
+      [rideId],
+    );
+
+    expect(firstBatch.length).toBeGreaterThanOrEqual(5);
+    expect(secondBatch.length).toBeGreaterThanOrEqual(5);
+    expect(firstBatch.length).toBeLessThanOrEqual(10);
+    expect(secondBatch.length).toBeLessThanOrEqual(10);
+    expect(new Set(ids).size).toBe(15);
+    expect(ids.sort((left, right) => left - right)).toEqual(
+      expected.rows.map((notification) => Number(notification.id)),
+    );
+  });
+});
