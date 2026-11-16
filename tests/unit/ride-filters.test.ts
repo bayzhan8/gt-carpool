@@ -279,7 +279,7 @@ describe("browseHref", () => {
     ).toBe("/?dir=airport&only=women");
   });
 
-  it("parses and serializes an Other trips place filter only", () => {
+  it("parses and serializes an Other destinations place filter only", () => {
     expect(parseBrowseParams({ dir: "other", place: "p-abc123def0" })).toEqual({
       dir: "other",
       place: "p-abc123def0",

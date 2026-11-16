@@ -90,7 +90,7 @@ ride page is visible only to its members (others get 404).
 All screens share a thin top bar: wordmark "GT Carpool" (links to `/`), and on
 the right either "Sign in" or the user's initials (links to `/me`).
 
-1. **`/` Rides.** Segmented control "To ATL" / "From ATL" / "Other trips"
+1. **`/` Rides.** Segmented control "To ATL" / "From ATL" / "Other destinations"
    (default: to ATL; remembered in the URL as `?dir=airport|campus|other`).
    Optional date chip row: "Any day" + next 14 days (`?day=YYYY-MM-DD`). List
    of cards grouped by day header ("Fri, Dec 12"). Card: time ("6:30 AM"),

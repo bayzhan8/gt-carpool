@@ -123,7 +123,7 @@ test("R-DEST-1/2/3/7/8 students add, reuse, find, and join a community destinati
   await capture(page, testInfo, "board-to-atl-390");
   await page.getByRole("link", { name: "From ATL" }).click();
   await expect(page.locator(`a[href="/rides/${rideId}"]`)).toHaveCount(0);
-  await page.getByRole("link", { name: "Other trips" }).click();
+  await page.getByRole("link", { name: "Other destinations" }).click();
 
   await page.context().clearCookies();
   await signInAs(page, uniqueGatechEmail());
@@ -297,7 +297,7 @@ test("R-DEST-13 32-character near match truncates at 320px", async ({
   await capture(page, testInfo, "didyoumean-320");
 });
 
-test("R-DEST-2/7 signed-out Other trips and 320px tabs render without overflow", async ({
+test("R-DEST-2/7 signed-out Other destinations and 320px tabs render without overflow", async ({
   page,
 }, testInfo) => {
   await page.context().clearCookies();
@@ -305,7 +305,7 @@ test("R-DEST-2/7 signed-out Other trips and 320px tabs render without overflow",
   await page.goto("/?dir=other");
   await expect(
     page.getByRole("navigation", { name: "Ride direction" }).getByRole("link", {
-      name: "Other trips",
+      name: "Other destinations",
     }),
   ).toHaveAttribute("aria-current", "page");
   const tabRow = page.getByRole("navigation", { name: "Ride direction" });
@@ -422,7 +422,7 @@ test("R-DEST-4/6/7 community ride edit, invalid directions, and signed-out link"
   await page.goto("/?dir=other&place=does-not-exist");
   await expect(
     page.getByRole("navigation", { name: "Ride direction" }).getByRole("link", {
-      name: "Other trips",
+      name: "Other destinations",
     }),
   ).toHaveAttribute("aria-current", "page");
   await page.goto("/?dir=garbage");

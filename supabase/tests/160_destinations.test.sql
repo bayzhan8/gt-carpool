@@ -277,11 +277,11 @@ select ok(
 select ok(
   public.list_rides('other', null) @> '[{"origin":{"slug":"gt"},"destination":{"slug":"p-open-alpha160"}}]'
   and public.list_rides('other', null) @> '[{"origin":{"slug":"p-open-alpha160"},"destination":{"slug":"gt"}}]',
-  'R-DEST-8 Other trips includes both community route directions'
+  'R-DEST-8 Other destinations includes both community route directions'
 );
 select ok(
   not (public.list_rides('other', null) @> '[{"destination":{"slug":"p-hidden160000"}}]'),
-  'R-DEST-9 Other trips excludes hidden destinations'
+  'R-DEST-9 Other destinations excludes hidden destinations'
 );
 select ok(
   not public.list_open_places() @> '[{"slug":"p-hidden160000"}]',

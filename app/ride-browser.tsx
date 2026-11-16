@@ -205,7 +205,7 @@ export function RideBrowser({
           return (
             <a
               aria-current={state.dir === value ? "page" : undefined}
-              className={`flex min-h-11 items-center justify-center rounded-[8px] text-sm font-medium ${
+              className={`flex min-h-11 items-center justify-center rounded-[8px] px-1 text-center text-[13px] leading-tight font-medium ${
                 state.dir === value ? "bg-white shadow-sm" : "text-muted"
               }`}
               href={browseHref(next)}
@@ -216,7 +216,7 @@ export function RideBrowser({
                 ? "To ATL"
                 : value === "campus"
                   ? "From ATL"
-                  : "Other trips"}
+                  : "Other destinations"}
             </a>
           );
         })}
@@ -383,7 +383,7 @@ export function RideBrowser({
         <div className="mt-8 min-h-[60svh] rounded-[12px] border border-hairline p-6 text-center">
           <p className="font-medium">
             {state.dir === "other"
-              ? "No other trips yet. Heading somewhere else? Post a ride and add your destination."
+              ? "No other destinations yet. Heading somewhere else? Post a ride and add your destination."
               : "No rides yet. Post one and others can join."}
           </p>
           <a

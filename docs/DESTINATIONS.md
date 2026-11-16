@@ -40,9 +40,9 @@ community ↔ community rides are rejected with `invalid_route`. Enforced in
 `create_ride`.
 
 **R-DEST-2.** Airport rides stay primary. The board's direction control is
-**To ATL** · **From ATL** · **Other trips**, in that order, default To ATL.
+**To ATL** · **From ATL** · **Other destinations**, in that order, default To ATL.
 `?dir=airport` (campus → airport), `?dir=campus` (airport → campus) and
-`?dir=other` (any ride with a community place at either end). "Other trips"
+`?dir=other` (any ride with a community place at either end). "Other destinations"
 contains both directions; each card's route ("Campus → Athens",
 "Savannah → Campus") tells them apart.
 
@@ -112,7 +112,7 @@ only, as `[{"slug", "name", "upcoming": int, "riders": int}]`, where
 `upcoming` = active rides departing in the future and `riders` = distinct
 members of active rides departing within the 30-day window or later. Ordered by
 `upcoming desc, riders desc, name`, at most 50. Granted to `anon` and
-`authenticated` (the signed-out board shows the Other trips filter too).
+`authenticated` (the signed-out board shows the Other destinations filter too).
 
 ### Listing
 
@@ -152,14 +152,14 @@ through RPCs.
 
 ### Board (`/`)
 
-- Direction control: **To ATL** · **From ATL** · **Other trips**, three equal
+- Direction control: **To ATL** · **From ATL** · **Other destinations**, three equal
   segments that fit at 320 px.
 - Subtitle per tab: "Find or share a ride to the airport.", "Find or share a
   ride back to campus.", "Trips beyond the airport, to or from campus."
-- Other trips adds a chip row above the day chips: **All places** plus one chip
+- Other destinations adds a chip row above the day chips: **All places** plus one chip
   per open place (`?place=<slug>`, client-side filter, R-DEST-7 order). Hidden
   when there are no open places.
-- Other trips empty state: "No other trips yet. Heading somewhere else? Post a
+- Other destinations empty state: "No other destinations yet. Heading somewhere else? Post a
   ride and add your destination."
 - The board loads all three lists and the open places on the server, so tab
   and chip switches stay instant.
