@@ -71,6 +71,11 @@ export function AddPlaceSheet({
     }
   }, [state.place]);
 
+  function closeSheet() {
+    dialog.current?.close();
+    onClose();
+  }
+
   if (!portalReady) return null;
 
   return createPortal(
@@ -79,13 +84,10 @@ export function AddPlaceSheet({
       className="mx-auto mt-auto mb-0 w-full max-w-md rounded-t-[20px] p-0 shadow-xl backdrop:bg-black/30 sm:m-auto sm:rounded-[16px]"
       onCancel={(event) => {
         event.preventDefault();
-        dialog.current?.close();
+        closeSheet();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) dialog.current?.close();
-      }}
-      onClose={() => {
-        if (open) onClose();
+        if (event.target === event.currentTarget) closeSheet();
       }}
       ref={dialog}
     >
@@ -131,13 +133,13 @@ export function AddPlaceSheet({
             >
               {suggestions.map((place) => (
                 <button
-                  className="flex min-h-11 w-full items-center justify-between rounded-[10px] border border-hairline px-3 text-left text-sm"
+                  className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border border-hairline px-3 text-left text-sm"
                   key={place.slug}
                   onClick={() => onSelectRef.current(place)}
                   type="button"
                 >
-                  <span>{place.name}</span>
-                  <span className="text-muted">
+                  <span className="min-w-0 truncate">{place.name}</span>
+                  <span className="shrink-0 whitespace-nowrap text-muted">
                     · {place.upcoming} upcoming ride
                     {place.upcoming === 1 ? "" : "s"}
                   </span>
@@ -164,7 +166,7 @@ export function AddPlaceSheet({
             </button>
             <button
               className="min-h-11 flex-1 rounded-[10px] border border-hairline px-4"
-              onClick={() => dialog.current?.close()}
+              onClick={closeSheet}
               type="button"
             >
               Cancel

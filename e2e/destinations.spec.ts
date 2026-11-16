@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { Pool } from "pg";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { completeProfile, signInAs, uniqueGatechEmail } from "./helpers/auth";
+import { getLatestEmailBody } from "./helpers/mailpit";
+import { pickTime } from "./helpers/time";
 
 const screenshotDirectory = process.env.DESTINATIONS_SCREENSHOT_DIR;
 if (screenshotDirectory) {
@@ -71,6 +73,7 @@ test("R-DEST-4 dir=other opens the add-place sheet when no places are open", asy
 test("R-DEST-1/2/3/7/8 students add, reuse, find, and join a community destination", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await signInAs(page, uniqueGatechEmail());
   await completeProfile(page, { firstName: "Riley" });
@@ -141,14 +144,14 @@ test("R-DEST-1/2/3/7/8 students add, reuse, find, and join a community destinati
   );
   await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
   await page.getByLabel("Place", { exact: true }).fill("foo.com");
-  await page.getByRole("button", { name: "Use this place" }).click();
+  await page.getByLabel("Place", { exact: true }).press("Enter");
   await expect(page.getByRole("dialog").getByRole("alert")).toHaveText(
     "Use a city or venue name, 2–32 characters.",
   );
   await capture(page, testInfo, "sheet-error-390");
 
   await page.getByLabel("Place", { exact: true }).fill("athens ");
-  await page.getByRole("button", { name: "Use this place" }).click();
+  await page.getByLabel("Place", { exact: true }).press("Enter");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
     page
@@ -186,4 +189,240 @@ test("R-DEST-2/7 signed-out Other trips and 320px tabs render without overflow",
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
   await tabRow.scrollIntoViewIfNeeded();
   await capture(page, testInfo, "tabs-320");
+});
+
+test("R-DEST-1/6/7/8 post, join, notify, and filter both community directions", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const ownerEmail = uniqueGatechEmail();
+  await signInAs(page, ownerEmail);
+  await completeProfile(page, { firstName: "Taylor", lastName: "Owner" });
+  await page.goto("/rides/new");
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("Six Flags");
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Post ride" }).click();
+  await expect(page.getByText("Your ride is up!")).toBeVisible();
+  const firstRideId = new URL(page.url()).pathname.split("/").pop();
+  expect(firstRideId).toMatch(/^[0-9a-f-]{36}$/i);
+  await capture(page, testInfo, "six-flags-posted-390");
+
+  const calendarResponse = await page
+    .context()
+    .request.get(`/rides/${firstRideId}/calendar.ics`);
+  expect(calendarResponse.status()).toBe(200);
+  const calendar = await calendarResponse.text();
+  const location = calendar.match(/^LOCATION:(.*)$/m)?.[1] ?? "";
+  expect(location).toContain("Six Flags");
+  expect(location).not.toMatch(/undefined|null|,,/);
+
+  const riderEmail = uniqueGatechEmail();
+  await page.context().clearCookies();
+  await signInAs(page, riderEmail);
+  await completeProfile(page, { firstName: "Jordan", lastName: "Rider" });
+  await page.goto("/?dir=other");
+  await page
+    .getByRole("navigation", { name: "Filter by place" })
+    .getByRole("link", { name: "Six Flags" })
+    .click();
+  await page.locator(`a[href="/rides/${firstRideId}"]`).click();
+  await expect(
+    page.getByRole("heading", { name: "Georgia Tech → Six Flags" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Join ride" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Join" }).click();
+  await expect(page.getByText("You're in!")).toBeVisible();
+  const emailBody = await getLatestEmailBody(ownerEmail, {
+    subject: "Jordan R. joined your ride",
+  });
+  expect(emailBody).toContain("Six Flags");
+
+  await page.goto("/rides/new");
+  await page.getByLabel("From", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("six");
+  const sixFlagsSuggestion = page.getByRole("button", {
+    name: /Six Flags · .* upcoming ride/,
+  });
+  await expect(sixFlagsSuggestion).toBeVisible();
+  await sixFlagsSuggestion.click();
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue("gt");
+  await page.getByRole("button", { name: "Post ride" }).click();
+  await expect(page.getByText("Your ride is up!")).toBeVisible();
+  const reverseRideId = new URL(page.url()).pathname.split("/").pop();
+  expect(reverseRideId).toMatch(/^[0-9a-f-]{36}$/i);
+
+  await page.goto("/?dir=other");
+  await page
+    .getByRole("navigation", { name: "Filter by place" })
+    .getByRole("link", { name: "Six Flags" })
+    .click();
+  await expect(page.locator(`a[href="/rides/${reverseRideId}"]`)).toBeVisible();
+});
+
+test("R-DEST-4/6/7 community ride edit, invalid directions, and signed-out link", async ({
+  page,
+}) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await signInAs(page, uniqueGatechEmail());
+  await completeProfile(page, { firstName: "Edit", lastName: "Owner" });
+  await page.goto("/rides/new");
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("Macon");
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("To", { exact: true })).not.toHaveValue(
+    "atl-domestic",
+  );
+  await page.getByRole("button", { name: "Post ride" }).click();
+  await expect(page.getByText("Your ride is up!")).toBeVisible();
+  const rideId = new URL(page.url()).pathname.split("/").pop();
+  expect(rideId).toMatch(/^[0-9a-f-]{36}$/i);
+
+  await page.goto(`/rides/${rideId}/edit`);
+  await expect(page.getByRole("heading", { name: "Edit ride" })).toBeVisible();
+  const date = await page.locator('input[name="date"]').inputValue();
+  const nextDate = new Date(`${date}T00:00:00Z`);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  await page.getByLabel("Date").fill(nextDate.toISOString().slice(0, 10));
+  await pickTime(page, "11:00");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(`/rides/${rideId}`);
+  await expect(page.getByText("11:00 AM", { exact: true })).toBeVisible();
+
+  await page.goto("/?dir=other&place=does-not-exist");
+  await expect(
+    page.getByRole("navigation", { name: "Ride direction" }).getByRole("link", {
+      name: "Other trips",
+    }),
+  ).toHaveAttribute("aria-current", "page");
+  await page.goto("/?dir=garbage");
+  await expect(
+    page.getByRole("navigation", { name: "Ride direction" }).getByRole("link", {
+      name: "To ATL",
+    }),
+  ).toHaveAttribute("aria-current", "page");
+
+  await page.context().clearCookies();
+  await page.goto(`/rides/${rideId}`);
+  const signInLink = page.getByRole("link", {
+    name: "Sign in with your GT email to join",
+  });
+  await expect(signInLink).toBeVisible();
+  await expect(signInLink).toHaveAttribute(
+    "href",
+    `/signin?next=${encodeURIComponent(`/rides/${rideId}`)}`,
+  );
+  expect(pageErrors).toEqual([]);
+});
+
+test("R-DEST-8 similar-rides prompt matches the same community route", async ({
+  page,
+}) => {
+  await signInAs(page, uniqueGatechEmail());
+  await completeProfile(page, { firstName: "First", lastName: "Rider" });
+  await page.goto("/rides/new");
+  const date = await page.locator('input[name="date"]').inputValue();
+  const time = await page.locator('input[name="time"]').inputValue();
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("Hartsfield Center");
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("To", { exact: true })).not.toHaveValue(
+    "atl-domestic",
+  );
+  const destination = await page.getByLabel("To", { exact: true }).inputValue();
+  await page.getByRole("button", { name: "Post ride" }).click();
+  await expect(page.getByText("Your ride is up!")).toBeVisible();
+
+  await page.context().clearCookies();
+  await signInAs(page, uniqueGatechEmail());
+  await completeProfile(page, { firstName: "Second", lastName: "Rider" });
+  await page.goto("/rides/new");
+  await page.getByLabel("To", { exact: true }).selectOption(destination);
+  await page.getByLabel("Date").fill(date);
+  await pickTime(page, time);
+  await expect(
+    page.locator('section[aria-label="Similar rides"]'),
+  ).toBeVisible();
+});
+
+test("R-DEST-3/4/7 a 32-character destination truncates and the sheet supports Escape and Enter", async ({
+  page,
+}, testInfo) => {
+  const longName = "The Georgia Aquarium Event Venue";
+  expect(longName).toHaveLength(32);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await signInAs(page, uniqueGatechEmail());
+  await completeProfile(page, { firstName: "Long", lastName: "Name" });
+  await page.goto("/rides/new");
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill(longName);
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("To", { exact: true })).not.toHaveValue(
+    "atl-domestic",
+  );
+  const longSlug = await page.getByLabel("To", { exact: true }).inputValue();
+  const formWidth = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(formWidth.scrollWidth).toBeLessThanOrEqual(formWidth.clientWidth);
+  await page.getByRole("button", { name: "Post ride" }).click();
+  await expect(page.getByText("Your ride is up!")).toBeVisible();
+
+  await page.context().clearCookies();
+  await signInAs(page, uniqueGatechEmail());
+  await completeProfile(page, { firstName: "Long", lastName: "Picker" });
+  await page.goto("/rides/new");
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("The Georgia");
+  const suggestionRow = page.getByRole("button", {
+    name: /The Georgia Aquarium Event Venue · .* upcoming ride/,
+  });
+  await expect(suggestionRow).toBeVisible();
+  const suggestionDimensions = await suggestionRow.evaluate((button) => {
+    const name = button.querySelector("span");
+    return {
+      rowClientWidth: button.clientWidth,
+      rowScrollWidth: button.scrollWidth,
+      nameClientWidth: name?.clientWidth ?? 0,
+      nameScrollWidth: name?.scrollWidth ?? 0,
+      textOverflow: name ? getComputedStyle(name).textOverflow : "",
+    };
+  });
+  expect(suggestionDimensions.rowScrollWidth).toBeLessThanOrEqual(
+    suggestionDimensions.rowClientWidth,
+  );
+  expect(suggestionDimensions.nameScrollWidth).toBeGreaterThan(
+    suggestionDimensions.nameClientWidth,
+  );
+  expect(suggestionDimensions.textOverflow).toBe("ellipsis");
+  await capture(page, testInfo, "suggestion-truncation-320");
+  await suggestionRow.click();
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue(longSlug);
+  const selectedFormWidth = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(selectedFormWidth.scrollWidth).toBeLessThanOrEqual(
+    selectedFormWidth.clientWidth,
+  );
+
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("The Georgia");
+  await page.getByLabel("Place", { exact: true }).press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue(longSlug);
+
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("Sandy Springs");
+  await page.getByLabel("Place", { exact: true }).press("Enter");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("To", { exact: true })).not.toHaveValue(
+    longSlug,
+  );
 });

@@ -141,9 +141,10 @@ hidden place stay reachable by direct link for their members; cancel them by
 hand if needed. Students report bad names through the existing ride report.
 
 **R-DEST-10.** Community places have no address. Ride pages show only the name
-for that end; the calendar file uses the origin's address, or its name when
-the address is empty. `places.created_by` references `profiles(id) on delete
-set null`, so deleting an account keeps the place and its other riders' rides.
+for that end; the calendar file's `LOCATION` includes both ends of the route,
+using each end's address or its name when the address is empty.
+`places.created_by` references `profiles(id) on delete set null`, so deleting
+an account keeps the place and its other riders' rides.
 Clients never read `public.places` directly (no table grants); everything goes
 through RPCs.
 

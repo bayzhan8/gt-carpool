@@ -24,6 +24,23 @@ const notification: NotificationEmailData = {
 };
 
 describe("notification email rendering", () => {
+  it("renders community place names without requiring addresses", () => {
+    const result = render(
+      {
+        ...notification,
+        ride: {
+          ...notification.ride,
+          origin_short_name: "Campus",
+          destination_short_name: "Six Flags",
+        },
+      },
+      "https://gtcarpool.test/",
+    );
+
+    expect(result.text).toContain("from Campus to Six Flags");
+    expect(result.text).not.toMatch(/undefined|null/);
+  });
+
   it.each([
     [
       "member_joined",
