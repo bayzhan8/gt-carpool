@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { Pool } from "pg";
@@ -38,6 +39,18 @@ async function setCommunityPlacesHidden(hidden: boolean) {
     await pool.query(
       "update public.places set hidden = $1 where kind = 'other'",
       [hidden],
+    );
+  } finally {
+    await pool.end();
+  }
+}
+
+async function deleteCommunityPlace(name: string) {
+  const pool = new Pool({ connectionString: localDatabaseUrl() });
+  try {
+    await pool.query(
+      "delete from public.places where name_key = app.place_key($1)",
+      [name],
     );
   } finally {
     await pool.end();
@@ -168,6 +181,120 @@ test("R-DEST-1/2/3/7/8 students add, reuse, find, and join a community destinati
   await page.getByRole("button", { name: "Join ride" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Join" }).click();
   await expect(page.getByText("You're in!")).toBeVisible();
+});
+
+test("R-DEST-11/12/13 suggests, selects, confirms, and clears near matches", async ({
+  page,
+}, testInfo) => {
+  await deleteCommunityPlace("Athens GA");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signInAs(page, uniqueGatechEmail());
+  await completeProfile(page, { firstName: "Near", lastName: "Match" });
+  await page.goto("/rides/new");
+  const athensOption = page
+    .getByLabel("To", { exact: true })
+    .locator("option")
+    .filter({ hasText: /^Athens$/ });
+  const athensSlug = await athensOption.getAttribute("value");
+  if (!athensSlug) throw new Error("Athens is not available in the picker");
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("Athens GA");
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Did you mean…?" }),
+  ).toBeVisible();
+  const athensSuggestion = page.getByRole("button", {
+    name: /Athens · .* upcoming rides?/,
+  });
+  await expect(athensSuggestion).toBeVisible();
+  await capture(page, testInfo, "didyoumean-390");
+
+  await page.getByLabel("Place", { exact: true }).fill("Athens");
+  await expect(
+    page.getByRole("heading", { name: "Did you mean…?" }),
+  ).toHaveCount(0);
+  await page.getByLabel("Place", { exact: true }).fill("Athens GA");
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Did you mean…?" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: /Athens · .* upcoming rides?/ })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue(athensSlug);
+
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("Athens GA");
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Did you mean…?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: 'No, add "Athens GA"' }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page
+      .getByLabel("To", { exact: true })
+      .locator("option")
+      .filter({ hasText: "Athens GA" }),
+  ).toHaveCount(1);
+  await expect(page.getByLabel("To", { exact: true })).not.toHaveValue(
+    athensSlug,
+  );
+});
+
+test("R-DEST-13 32-character near match truncates at 320px", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await signInAs(page, uniqueGatechEmail());
+  await completeProfile(page, { firstName: "Narrow", lastName: "Match" });
+  await page.goto("/rides/new");
+
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill("Georgia Aquarium");
+  await page.getByRole("button", { name: "Use this place" }).click();
+  if (await page.getByRole("heading", { name: "Did you mean…?" }).count()) {
+    const typedName = await page
+      .getByLabel("Place", { exact: true })
+      .inputValue();
+    await page.getByRole("button", { name: `No, add "${typedName}"` }).click();
+  }
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  const suffix = Array.from(randomUUID())
+    .map((character) =>
+      String.fromCharCode(97 + (character.charCodeAt(0) % 26)),
+    )
+    .join("")
+    .slice(0, 15);
+  const longName = `Georgia Aquarium ${suffix}`;
+  expect(longName).toHaveLength(32);
+  await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
+  await page.getByLabel("Place", { exact: true }).fill(longName);
+  await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Did you mean…?" }),
+  ).toBeVisible();
+  const addButton = page.getByRole("button", {
+    name: `No, add "${longName}"`,
+  });
+  await expect(addButton).toBeVisible();
+  const dimensions = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  const addButtonDimensions = await addButton.evaluate((button) => ({
+    clientWidth: button.clientWidth,
+    scrollWidth: button.scrollWidth,
+    labelOverflow: getComputedStyle(button.firstElementChild!).textOverflow,
+  }));
+  expect(addButtonDimensions.scrollWidth).toBeLessThanOrEqual(
+    addButtonDimensions.clientWidth,
+  );
+  expect(addButtonDimensions.labelOverflow).toBe("ellipsis");
+  await capture(page, testInfo, "didyoumean-320");
 });
 
 test("R-DEST-2/7 signed-out Other trips and 320px tabs render without overflow", async ({
@@ -352,7 +479,13 @@ test("R-DEST-8 similar-rides prompt matches the same community route", async ({
 test("R-DEST-3/4/7 a 32-character destination truncates and the sheet supports Escape and Enter", async ({
   page,
 }, testInfo) => {
-  const longName = "The Georgia Aquarium Event Venue";
+  const suffix = Array.from(randomUUID())
+    .map((character) =>
+      String.fromCharCode(97 + (character.charCodeAt(0) % 26)),
+    )
+    .join("")
+    .slice(0, 11);
+  const longName = `The Georgia Aquarium ${suffix}`;
   expect(longName).toHaveLength(32);
   await page.setViewportSize({ width: 320, height: 800 });
   await signInAs(page, uniqueGatechEmail());
@@ -361,6 +494,10 @@ test("R-DEST-3/4/7 a 32-character destination truncates and the sheet supports E
   await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
   await page.getByLabel("Place", { exact: true }).fill(longName);
   await page.getByRole("button", { name: "Use this place" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Did you mean…?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: `No, add "${longName}"` }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByLabel("To", { exact: true })).not.toHaveValue(
     "atl-domestic",
@@ -381,7 +518,7 @@ test("R-DEST-3/4/7 a 32-character destination truncates and the sheet supports E
   await page.getByLabel("To", { exact: true }).selectOption("__add-place__");
   await page.getByLabel("Place", { exact: true }).fill("The Georgia");
   const suggestionRow = page.getByRole("button", {
-    name: /The Georgia Aquarium Event Venue · .* upcoming ride/,
+    name: new RegExp(`${longName} · .* upcoming ride`),
   });
   await expect(suggestionRow).toBeVisible();
   const suggestionDimensions = await suggestionRow.evaluate((button) => {

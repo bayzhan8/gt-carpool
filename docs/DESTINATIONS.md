@@ -220,6 +220,56 @@ through RPCs.
 
 ## 6. Not doing (yet)
 
-Addresses or maps for community places, editing or merging place names,
+Addresses or maps for community places, editing place names (merging: see §8),
 community ↔ airport rides, promoting popular places to curated, per-place
 pages, notifying people when a destination they used opens again.
+
+## 7. Near-duplicate names ("Did you mean…?")
+
+Exact duplicates are already prevented by `name_key` (R-DEST-3.4). This section
+catches different spellings of the same place before a new one is created:
+"Athen", "Athens GA", "Athens Georgia", "Savanah", "Mercedes Benz" (for
+"Mercedes-Benz Stadium"), "MB Stadium", "Six Flags" (for "Six Flags Over
+Georgia"), "Stone Mtn". Semantic aliases with no shared letters ("UGA" for
+Athens, "Braves stadium" for Truist Park) are out of scope here; see §8.
+
+**R-DEST-11.** The database uses the `pg_trgm` extension (installed in the
+`extensions` schema). A community place P is **similar** to a typed name N when
+P is not hidden, `P.name_key <> key(N)`, and
+
+    similarity(P.name_key, key(N)) >= 0.4
+    or strict_word_similarity(P.name_key, key(N)) >= 0.6
+    or strict_word_similarity(key(N), P.name_key) >= 0.6
+
+Similar places may be open or closed; suggesting a closed one revives it if
+chosen. Calibration (measured locally): matches athen/athens 0.63,
+"athens ga"/athens 1.0, savanah/savannah 0.70, "mb stadium"/"mercedes benz
+stadium" 0.73, "stone mtn"/"stone mountain" 0.60; non-matches
+atlanta/athens 0.15–0.29, decatur/duluth 0.07, macon/marietta 0.15–0.33,
+"georgia aquarium"/"georgia state" 0.35/0.57. A false positive only costs one
+extra tap, so the thresholds lean towards suggesting.
+
+**R-DEST-12.** `add_place(p_name text, p_confirm_new boolean default false)`
+replaces `add_place(text)` (drop the old signature; existing callers passing
+only `p_name` keep working). Steps 1–6 of R-DEST-3 are unchanged (an exact key
+match is still reused immediately). New step 6½: if `p_confirm_new` is false
+and at least one similar place exists, return
+`{"suggestions": [{"slug", "name", "upcoming"}]}` (at most 3, ordered by the
+greater of the three scores desc, then name) and create nothing. With
+`p_confirm_new = true` the check is skipped and step 7 onward runs as before.
+The suggestion response does not count toward `place_limit`.
+
+**R-DEST-13.** UI: when **Use this place** returns suggestions, the sheet
+replaces the live-suggestion list with "Did you mean…?" and one row per
+suggestion (tap = select it, no further server call), plus a secondary button
+**No, add "<typed name>"**, which resubmits with `p_confirm_new = true`.
+Editing the field returns the sheet to its normal state. The live list while
+typing (substring match on open places) is unchanged.
+
+## 8. AI merge suggestions (planned, not built)
+
+A daily job sends the active community places to an LLM, asks which names are
+the same real-world place, and emails the operator one-tap approve links.
+Approving merges the places (rides move to the kept place; the merged name
+becomes an alias that `add_place` resolves). Nothing merges without a human.
+Needs an LLM API key. Specified in detail before it is built.

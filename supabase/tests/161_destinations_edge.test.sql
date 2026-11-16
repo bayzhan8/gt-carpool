@@ -20,7 +20,7 @@ values
   ('16100000-0000-4000-8000-000000000005', 'edge-viewer@gatech.edu', 'Edge', 'Viewer', '+14045550105', 'woman');
 
 select ok(
-  not pg_catalog.has_function_privilege('anon', 'public.add_place(text)', 'execute'),
+  not pg_catalog.has_function_privilege('anon', 'public.add_place(text,boolean)', 'execute'),
   'R-DEST-10 anon cannot execute add_place'
 );
 select ok(
@@ -87,8 +87,6 @@ insert into edge_places
 select 'auburn', public.add_place('Sweet Auburn (MLK)')->>'slug';
 insert into edge_places
 select 'six-austell', public.add_place('Six Flags / Austell')->>'slug';
-insert into edge_places
-select 'six-flags', public.add_place('Six Flags')->>'slug';
 select ok((select slug like 'p-%' from edge_places where label = 'auburn'), 'R-DEST-3 accepts parentheses and hyphens');
 select ok((select slug like 'p-%' from edge_places where label = 'six-austell'), 'R-DEST-3 accepts slash punctuation');
 
@@ -243,7 +241,7 @@ create temporary table restricted_ride (id uuid);
 insert into restricted_ride
 select public.create_ride(
   'gt',
-  (select slug from edge_places where label = 'six-flags'),
+  (select slug from edge_places where label = 'six-austell'),
   pg_catalog.now() + interval '10 days',
   4,
   '',
@@ -279,7 +277,7 @@ create temporary table similar_ride (id uuid);
 insert into similar_ride
 select public.create_ride(
   'gt',
-  (select slug from edge_places where label = 'six-flags'),
+  (select slug from edge_places where label = 'six-austell'),
   pg_catalog.now() + interval '10 days 20 minutes',
   4,
   '',
@@ -293,7 +291,7 @@ select set_config(
 select ok(
   public.find_similar_rides(
     'gt',
-    (select slug from edge_places where label = 'six-flags'),
+    (select slug from edge_places where label = 'six-austell'),
     pg_catalog.now() + interval '10 days 80 minutes'
   ) @> pg_catalog.jsonb_build_array(
     pg_catalog.jsonb_build_object('id', (select id from similar_ride))
@@ -354,7 +352,7 @@ create temporary table reminder_ride (id uuid);
 insert into reminder_ride
 select public.create_ride(
   'gt',
-  (select slug from edge_places where label = 'six-flags'),
+  (select slug from edge_places where label = 'six-austell'),
   pg_catalog.now() + interval '2 hours',
   4,
   '',
@@ -383,7 +381,7 @@ select ok(
       lateral pg_catalog.jsonb_array_elements(data) as claimed(item)
     where item->'ride'->>'id' = (select id::text from reminder_ride)
       and item->'ride'->>'origin_short_name' = 'Campus'
-      and item->'ride'->>'destination_short_name' = 'Six Flags'
+      and item->'ride'->>'destination_short_name' = 'Six Flags / Austell'
       and item->>'kind' in ('member_joined', 'ride_reminder')
   ),
   'R-DEST-10 claimed notification payload uses community place short names'

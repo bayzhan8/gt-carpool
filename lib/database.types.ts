@@ -336,7 +336,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      add_place: { Args: { p_name: string }; Returns: Json };
+      add_place: {
+        Args: { p_confirm_new?: boolean; p_name: string };
+        Returns: Json;
+      };
       cancel_ride: { Args: { p_ride_id: string }; Returns: undefined };
       claim_notifications: { Args: { p_limit?: number }; Returns: Json };
       complete_notification: {

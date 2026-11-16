@@ -132,12 +132,12 @@ select set_config(
   '{"sub":"16000000-0000-4000-8000-000000000002","role":"authenticated"}',
   true
 );
-select ok((public.add_place('Limit One')->>'created')::boolean, 'R-DEST-3 creates the first community place');
-select ok((public.add_place('Limit Two')->>'created')::boolean, 'R-DEST-3 creates the second community place');
-select ok((public.add_place('Limit Three')->>'created')::boolean, 'R-DEST-3 creates the third community place');
-select is(public.add_place('Limit One')->>'created', 'false', 'R-DEST-3 reuse does not count against the limit');
+select ok((public.add_place('Blue Heron Park')->>'created')::boolean, 'R-DEST-3 creates the first community place');
+select ok((public.add_place('North Point Mall')->>'created')::boolean, 'R-DEST-3 creates the second community place');
+select ok((public.add_place('Oak Grove Center')->>'created')::boolean, 'R-DEST-3 creates the third community place');
+select is(public.add_place('Blue Heron Park')->>'created', 'false', 'R-DEST-3 reuse does not count against the limit');
 select throws_ok(
-  $$select public.add_place('Limit Four')$$,
+  $$select public.add_place('Pine Lake')$$,
   'P0001', 'place_limit',
   'R-DEST-3 limits new places to three per seven days'
 );

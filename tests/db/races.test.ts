@@ -165,7 +165,7 @@ describe("database concurrency invariants", () => {
 
     const outcomes = await Promise.all(
       userIds.map((userId) =>
-        queryAsUser(userId, "select public.add_place($1::text)", [name]),
+        queryAsUser(userId, "select public.add_place($1::text, false)", [name]),
       ),
     );
     const places = outcomes
@@ -187,21 +187,19 @@ describe("database concurrency invariants", () => {
 
   it("R-DEST-3 limits five concurrent distinct place additions to three", async () => {
     const userId = await createProfile();
-    const suffix = Array.from(randomUUID())
-      .map((character) =>
-        String.fromCharCode(97 + (character.charCodeAt(0) % 26)),
-      )
-      .join("")
-      .slice(0, 12);
-    const names = Array.from(
-      { length: 5 },
-      (_, index) => `Race ${suffix} ${String.fromCharCode(65 + index)}`,
+    const names = Array.from({ length: 5 }, () =>
+      Array.from(randomUUID())
+        .map((character) =>
+          String.fromCharCode(97 + (character.charCodeAt(0) % 26)),
+        )
+        .join("")
+        .slice(0, 12),
     );
     fixturePlaceNames.push(...names);
 
     const outcomes = await Promise.all(
       names.map((name) =>
-        queryAsUser(userId, "select public.add_place($1::text)", [name]),
+        queryAsUser(userId, "select public.add_place($1::text, false)", [name]),
       ),
     );
     const successes = outcomes.filter((outcome) => outcome.success);

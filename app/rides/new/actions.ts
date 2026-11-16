@@ -16,6 +16,7 @@ export type CreateRideState = {
 export type AddPlaceState = {
   error?: string;
   place?: Pick<OpenPlace, "slug" | "name">;
+  suggestions?: Pick<OpenPlace, "slug" | "name" | "upcoming">[];
 };
 
 function fieldValue(formData: FormData, name: string): string {
@@ -47,13 +48,24 @@ export async function addPlaceAction(
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("add_place", {
     p_name: fieldValue(formData, "name"),
+    p_confirm_new: fieldValue(formData, "p_confirm_new") === "true",
   });
 
   if (error) {
     return { error: errorCopy(error.message) };
   }
 
-  return { place: data as Pick<OpenPlace, "slug" | "name"> };
+  const result = data as {
+    slug?: string;
+    name?: string;
+    suggestions?: Pick<OpenPlace, "slug" | "name" | "upcoming">[];
+  };
+
+  if (result.suggestions) {
+    return { suggestions: result.suggestions };
+  }
+
+  return { place: { slug: result.slug ?? "", name: result.name ?? "" } };
 }
 
 export async function createRideAction(

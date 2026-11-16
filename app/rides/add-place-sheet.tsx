@@ -32,9 +32,11 @@ export function AddPlaceSheet({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const confirmNewInput = useRef<HTMLInputElement>(null);
   const onSelectRef = useRef(onSelect);
   const [name, setName] = useState("");
   const [attempted, setAttempted] = useState(false);
+  const [suggestionName, setSuggestionName] = useState("");
   const portalReady = useSyncExternalStore(
     subscribe,
     getClientSnapshot,
@@ -42,9 +44,13 @@ export function AddPlaceSheet({
   );
   const [state, action, pending] = useActionState(addPlaceAction, initialState);
   const queryKey = placeKey(name);
-  const suggestions = queryKey
+  const matchingPlaces = queryKey
     ? openPlaces.filter((place) => placeKey(place.name).includes(queryKey))
     : [];
+  const similarPlaces =
+    !pending && suggestionName !== "" && suggestionName === name
+      ? (state.suggestions ?? [])
+      : [];
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -57,6 +63,8 @@ export function AddPlaceSheet({
     if (open && !element.open) {
       setName("");
       setAttempted(false);
+      setSuggestionName("");
+      if (confirmNewInput.current) confirmNewInput.current.value = "false";
       element.showModal();
       window.setTimeout(() => input.current?.focus(), 0);
     } else if (!open && element.open) {
@@ -103,8 +111,17 @@ export function AddPlaceSheet({
         <form
           action={action}
           className="space-y-4"
-          onSubmit={() => setAttempted(true)}
+          onSubmit={() => {
+            setAttempted(true);
+            setSuggestionName(name);
+          }}
         >
+          <input
+            name="p_confirm_new"
+            ref={confirmNewInput}
+            type="hidden"
+            value="false"
+          />
           <label
             className="block space-y-2 text-sm font-medium"
             htmlFor="place-name"
@@ -119,19 +136,46 @@ export function AddPlaceSheet({
               onChange={(event) => {
                 setName(event.target.value);
                 setAttempted(false);
+                setSuggestionName("");
+                if (confirmNewInput.current) {
+                  confirmNewInput.current.value = "false";
+                }
               }}
               placeholder="Athens, Savannah, State Farm Arena…"
               ref={input}
               value={name}
             />
           </label>
-          {suggestions.length > 0 ? (
+          {similarPlaces.length > 0 ? (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Did you mean…?</h3>
+              <div className="space-y-2">
+                {similarPlaces.map((place) => (
+                  <button
+                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border border-hairline px-3 text-left text-sm"
+                    key={place.slug}
+                    onClick={() => {
+                      onSelectRef.current(place);
+                      dialog.current?.close();
+                    }}
+                    type="button"
+                  >
+                    <span className="min-w-0 truncate">{place.name}</span>
+                    <span className="shrink-0 whitespace-nowrap text-muted">
+                      · {place.upcoming} upcoming ride
+                      {place.upcoming === 1 ? "" : "s"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : matchingPlaces.length > 0 ? (
             <div
               aria-label="Matching places"
               className="space-y-2"
               role="group"
             >
-              {suggestions.map((place) => (
+              {matchingPlaces.map((place) => (
                 <button
                   className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border border-hairline px-3 text-left text-sm"
                   key={place.slug}
@@ -157,13 +201,33 @@ export function AddPlaceSheet({
             </p>
           ) : null}
           <div className="flex gap-3">
-            <button
-              className="min-h-11 flex-1 rounded-[10px] bg-primary px-4 font-medium text-white disabled:opacity-60"
-              disabled={!name.trim() || pending}
-              type="submit"
-            >
-              {pending ? "Saving…" : "Use this place"}
-            </button>
+            {similarPlaces.length > 0 ? (
+              <button
+                className="min-h-11 min-w-0 flex-1 rounded-[10px] border border-hairline px-2 text-sm disabled:opacity-60"
+                disabled={pending}
+                onClick={() => {
+                  if (confirmNewInput.current) {
+                    confirmNewInput.current.value = "true";
+                  }
+                }}
+                type="submit"
+              >
+                <span className="block truncate">{`No, add "${name}"`}</span>
+              </button>
+            ) : (
+              <button
+                className="min-h-11 flex-1 rounded-[10px] bg-primary px-4 font-medium text-white disabled:opacity-60"
+                disabled={!name.trim() || pending}
+                onClick={() => {
+                  if (confirmNewInput.current) {
+                    confirmNewInput.current.value = "false";
+                  }
+                }}
+                type="submit"
+              >
+                {pending ? "Saving…" : "Use this place"}
+              </button>
+            )}
             <button
               className="min-h-11 flex-1 rounded-[10px] border border-hairline px-4"
               onClick={closeSheet}
