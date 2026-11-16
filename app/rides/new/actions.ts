@@ -6,11 +6,16 @@ import { requireProfile } from "@/lib/auth";
 import { errorCopy } from "@/lib/errors";
 import { atlantaLocalToInstant } from "@/lib/time";
 import { findSimilarRides } from "@/lib/rides";
-import type { RideCard } from "@/lib/rides";
+import type { OpenPlace, RideCard } from "@/lib/rides";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateRideState = {
   error?: string;
+};
+
+export type AddPlaceState = {
+  error?: string;
+  place?: Pick<OpenPlace, "slug" | "name">;
 };
 
 function fieldValue(formData: FormData, name: string): string {
@@ -32,6 +37,23 @@ export async function findSimilarRidesAction(
   }
 
   return findSimilarRides(origin, destination, localTime.iso);
+}
+
+export async function addPlaceAction(
+  _previousState: AddPlaceState,
+  formData: FormData,
+): Promise<AddPlaceState> {
+  await requireProfile("/rides/new");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_place", {
+    p_name: fieldValue(formData, "name"),
+  });
+
+  if (error) {
+    return { error: errorCopy(error.message) };
+  }
+
+  return { place: data as Pick<OpenPlace, "slug" | "name"> };
 }
 
 export async function createRideAction(

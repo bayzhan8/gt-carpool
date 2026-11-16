@@ -3,7 +3,7 @@ import { cache } from "react";
 import type { Json } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
-export type RideDirection = "airport" | "campus";
+export type RideDirection = "airport" | "campus" | "other";
 export type RideStatus = "active" | "cancelled";
 export type RideAudience = "anyone" | "men" | "women";
 
@@ -15,6 +15,13 @@ export type RideMix = {
 export type RidePlaceCard = {
   slug: string;
   short_name: string;
+};
+
+export type OpenPlace = {
+  slug: string;
+  name: string;
+  upcoming: number;
+  riders: number;
 };
 
 export type RideCard = {
@@ -90,6 +97,17 @@ export async function listRides(
   }
 
   return asArray<RideCard>(data);
+}
+
+export async function listOpenPlaces(): Promise<OpenPlace[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_open_places");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return asArray<OpenPlace>(data);
 }
 
 export const getRide = cache(async function getRide(

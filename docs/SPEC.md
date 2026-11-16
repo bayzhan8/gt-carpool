@@ -44,18 +44,8 @@ cancelled), then deletes the auth user; their profile and memberships cascade.
 
 ## 4. Places
 
-R-PLACE-1: places are a curated table; users cannot add places. v1 seed:
-
-| slug | name | short | address |
-|---|---|---|---|
-| `gt` | Georgia Tech | Campus | North Ave NW, Atlanta, GA 30332 |
-| `atl-domestic` | ATL Domestic Terminal | ATL Domestic | 6000 N Terminal Pkwy, Atlanta, GA 30320 |
-| `atl-intl` | ATL International Terminal | ATL Intl | 2600 Maynard H. Jackson Jr. Blvd, Atlanta, GA 30320 |
-
-R-PLACE-2: a ride's origin and destination differ. Exactly one end of every
-ride is `gt` in v1 (campus ↔ airport only), enforced by the create/update RPCs
-via the `places.kind` column (`campus` | `airport`): one end `campus`, the other
-`airport`.
+R-PLACE-1 and R-PLACE-2: see `DESTINATIONS.md` for curated and community place
+rules, supported ride routes, and destination visibility.
 
 ## 5. Rides
 
@@ -100,12 +90,13 @@ ride page is visible only to its members (others get 404).
 All screens share a thin top bar: wordmark "GT Carpool" (links to `/`), and on
 the right either "Sign in" or the user's initials (links to `/me`).
 
-1. **`/` Rides.** Segmented control "To the airport" / "To campus" (default: to
-   the airport; remembered in the URL as `?dir=airport|campus`). Optional date
-   chip row: "Any day" + next 14 days (`?day=YYYY-MM-DD`). List of cards grouped
-   by day header ("Fri, Dec 12"). Card: time ("6:30 AM"), route ("Campus →
-   ATL Domestic"), seats left ("2 seats left" / "Full", full rides shown last in
-   the day and greyed), and for signed-in users the owner's "Alex P.". Empty
+1. **`/` Rides.** Segmented control "To ATL" / "From ATL" / "Other trips"
+   (default: to ATL; remembered in the URL as `?dir=airport|campus|other`).
+   Optional date chip row: "Any day" + next 14 days (`?day=YYYY-MM-DD`). List
+   of cards grouped by day header ("Fri, Dec 12"). Card: time ("6:30 AM"),
+   route ("Campus → ATL Domestic"), seats left ("2 seats left" / "Full", full
+   rides shown last in the day and greyed), and for signed-in users the owner's
+   "Alex P.". Empty
    state: "No rides yet. Post one and others can join." Primary button
    (sticky on mobile): "Post a ride".
 2. **`/rides/new` Post a ride.** From / To (two selects, swap button; default
@@ -223,5 +214,5 @@ Vercel + Supabase cloud (needs the owner's accounts, M6). Node 22+.
 
 ## 12. Out of scope for v1
 
-Payments, in-app chat, maps/ETAs, drivers with own cars, rides outside campus ↔
-airport, ratings, admin UI, push notifications, dark mode.
+Payments, in-app chat, maps/ETAs, drivers with own cars, rides that don't start
+or end at campus, ratings, admin UI, push notifications, dark mode.

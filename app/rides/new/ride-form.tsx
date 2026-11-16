@@ -2,9 +2,13 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { atlantaLocalToInstant } from "@/lib/time";
-import type { RideCard as RideCardData } from "@/lib/rides";
-import type { RideAudience } from "@/lib/rides";
+import type {
+  OpenPlace,
+  RideAudience,
+  RideCard as RideCardData,
+} from "@/lib/rides";
 import { AudienceChoice } from "../audience-choice";
+import { AddPlaceSheet } from "../add-place-sheet";
 import { TimePicker } from "../time-picker";
 import { RideCard } from "../ride-card";
 import {
@@ -13,11 +17,18 @@ import {
   type CreateRideState,
 } from "./actions";
 
-const places = [
+const curatedPlaces = [
   { slug: "gt", name: "Campus", kind: "campus" },
   { slug: "atl-domestic", name: "ATL Domestic", kind: "airport" },
   { slug: "atl-intl", name: "ATL International", kind: "airport" },
 ] as const;
+const addPlaceOption = "__add-place__";
+
+type PlaceOption = {
+  slug: string;
+  name: string;
+  kind: "campus" | "airport" | "other";
+};
 
 const initialState: CreateRideState = {};
 
@@ -28,6 +39,8 @@ type RideFormProps = {
   initialDestination?: string;
   maxDate: string;
   ownerGender: "man" | "woman" | "unspecified" | null;
+  openPlaces: OpenPlace[];
+  openSheetOnLoad: boolean;
 };
 
 export function RideForm({
@@ -37,6 +50,8 @@ export function RideForm({
   initialDestination = "atl-domestic",
   maxDate,
   ownerGender,
+  openPlaces,
+  openSheetOnLoad,
 }: RideFormProps) {
   const [state, action, pending] = useActionState(
     createRideAction,
@@ -49,6 +64,10 @@ export function RideForm({
   const [seats, setSeats] = useState(4);
   const [notes, setNotes] = useState("");
   const [audience, setAudience] = useState<RideAudience>("anyone");
+  const [addedPlaces, setAddedPlaces] = useState<PlaceOption[]>([]);
+  const [sheetSide, setSheetSide] = useState<"origin" | "destination" | null>(
+    openSheetOnLoad ? "destination" : null,
+  );
   const [suggestionState, setSuggestionState] = useState<{
     key: string;
     rides: RideCardData[];
@@ -58,6 +77,18 @@ export function RideForm({
   const isValidLocalTime = atlantaLocalToInstant(date, time).ok;
   const suggestions =
     suggestionState.key === requestKey ? suggestionState.rides : [];
+  const placeOptions: PlaceOption[] = [
+    ...curatedPlaces,
+    ...openPlaces.slice(0, 8).map((place) => ({
+      slug: place.slug,
+      name: place.name,
+      kind: "other" as const,
+    })),
+    ...addedPlaces,
+  ].filter(
+    (place, index, places) =>
+      places.findIndex((candidate) => candidate.slug === place.slug) === index,
+  );
 
   useEffect(() => {
     if (!atlantaLocalToInstant(date, time).ok) return;
@@ -83,9 +114,13 @@ export function RideForm({
   }, [date, destination, origin, requestKey, time]);
 
   function changeOrigin(value: string) {
+    if (value === addPlaceOption) {
+      setSheetSide("origin");
+      return;
+    }
     setOrigin(value);
-    const selected = places.find((place) => place.slug === value);
-    if (selected?.kind === "airport") {
+    const selected = placeOptions.find((place) => place.slug === value);
+    if (selected && selected.kind !== "campus") {
       setDestination("gt");
     } else if (destination === "gt") {
       setDestination("atl-domestic");
@@ -93,13 +128,33 @@ export function RideForm({
   }
 
   function changeDestination(value: string) {
+    if (value === addPlaceOption) {
+      setSheetSide("destination");
+      return;
+    }
     setDestination(value);
-    const selected = places.find((place) => place.slug === value);
-    if (selected?.kind === "airport") {
+    const selected = placeOptions.find((place) => place.slug === value);
+    if (selected && selected.kind !== "campus") {
       setOrigin("gt");
     } else if (origin === "gt") {
       setOrigin("atl-domestic");
     }
+  }
+
+  function selectAddedPlace(place: Pick<OpenPlace, "slug" | "name">) {
+    const option: PlaceOption = { ...place, kind: "other" };
+    setAddedPlaces((current) => [
+      ...current.filter((candidate) => candidate.slug !== option.slug),
+      option,
+    ]);
+    if (sheetSide === "origin") {
+      setOrigin(option.slug);
+      setDestination("gt");
+    } else {
+      setDestination(option.slug);
+      setOrigin("gt");
+    }
+    setSheetSide(null);
   }
 
   return (
@@ -119,11 +174,23 @@ export function RideForm({
             onChange={(event) => changeOrigin(event.target.value)}
             value={origin}
           >
-            {places.map((place) => (
+            {curatedPlaces.map((place) => (
               <option key={place.slug} value={place.slug}>
                 {place.name}
               </option>
             ))}
+            {openPlaces.length > 0 || addedPlaces.length > 0 ? (
+              <optgroup label="Other places">
+                {placeOptions
+                  .filter((place) => place.kind === "other")
+                  .map((place) => (
+                    <option key={place.slug} value={place.slug}>
+                      {place.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ) : null}
+            <option value={addPlaceOption}>Somewhere else…</option>
           </select>
         </div>
         <button
@@ -157,11 +224,23 @@ export function RideForm({
             onChange={(event) => changeDestination(event.target.value)}
             value={destination}
           >
-            {places.map((place) => (
+            {curatedPlaces.map((place) => (
               <option key={place.slug} value={place.slug}>
                 {place.name}
               </option>
             ))}
+            {openPlaces.length > 0 || addedPlaces.length > 0 ? (
+              <optgroup label="Other places">
+                {placeOptions
+                  .filter((place) => place.kind === "other")
+                  .map((place) => (
+                    <option key={place.slug} value={place.slug}>
+                      {place.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ) : null}
+            <option value={addPlaceOption}>Somewhere else…</option>
           </select>
         </div>
       </div>
@@ -275,6 +354,13 @@ export function RideForm({
       >
         {pending ? "Posting…" : "Post ride"}
       </button>
+      <AddPlaceSheet
+        onClose={() => setSheetSide(null)}
+        onSelect={selectAddedPlace}
+        open={sheetSide !== null}
+        openPlaces={openPlaces}
+        side={sheetSide ?? "destination"}
+      />
     </form>
   );
 }

@@ -8,7 +8,7 @@ import {
   type MouseEvent,
 } from "react";
 import { atlantaDateKey, formatDayHeader } from "@/lib/time";
-import type { RideCard as RideCardData } from "@/lib/rides";
+import type { OpenPlace, RideCard as RideCardData } from "@/lib/rides";
 import {
   browseHref,
   filterRides,
@@ -23,6 +23,8 @@ type RideBrowserProps = {
   initial: BrowseState;
   airport: RideCardData[];
   campus: RideCardData[];
+  other: RideCardData[];
+  openPlaces: OpenPlace[];
   days: string[];
   viewerAudience: OnlyAudience | null;
 };
@@ -69,6 +71,7 @@ function browseStateFromSearch(search: string): BrowseState {
     time: params.get("time") ?? undefined,
     seats: params.get("seats") ?? undefined,
     only: params.get("only") ?? undefined,
+    place: params.get("place") ?? undefined,
   });
 }
 
@@ -108,6 +111,8 @@ export function RideBrowser({
   initial,
   airport,
   campus,
+  other,
+  openPlaces,
   days,
   viewerAudience,
 }: RideBrowserProps) {
@@ -124,14 +129,21 @@ export function RideBrowser({
       : { ...parsedState, only: null };
   const clearedState: BrowseState = {
     ...state,
+    place: null,
     day: null,
     time: null,
     minSeats: null,
     only: null,
   };
   const activeDayRef = useRef<HTMLAnchorElement>(null);
-  const directionRides = state.dir === "airport" ? airport : campus;
-  const visibleRides = filterRides(directionRides, state);
+  const directionRides =
+    state.dir === "airport" ? airport : state.dir === "campus" ? campus : other;
+  const visibleRides = filterRides(directionRides, state).filter((ride) => {
+    if (!state.place) return true;
+    return (
+      ride.origin.slug === state.place || ride.destination.slug === state.place
+    );
+  });
   const daysWithRides = new Set(
     directionRides.map((ride) => atlantaDateKey(ride.departs_at)),
   );
@@ -167,7 +179,9 @@ export function RideBrowser({
           <p className="mt-2 text-sm text-muted">
             {state.dir === "airport"
               ? "Find or share a ride to the airport."
-              : "Find or share a ride back to campus."}
+              : state.dir === "campus"
+                ? "Find or share a ride back to campus."
+                : "Trips beyond the airport, to or from campus."}
           </p>
         </div>
         <a
@@ -180,10 +194,14 @@ export function RideBrowser({
 
       <nav
         aria-label="Ride direction"
-        className="mt-6 grid grid-cols-2 rounded-[10px] bg-surface p-1"
+        className="mt-6 grid grid-cols-3 rounded-[10px] bg-surface p-1"
       >
-        {(["airport", "campus"] as const).map((value) => {
-          const next = { ...state, dir: value };
+        {(["airport", "campus", "other"] as const).map((value) => {
+          const next = {
+            ...state,
+            dir: value,
+            place: value === "other" ? state.place : null,
+          };
           return (
             <a
               aria-current={state.dir === value ? "page" : undefined}
@@ -194,11 +212,41 @@ export function RideBrowser({
               key={value}
               onClick={(event) => handleLocalLink(event, next)}
             >
-              {value === "airport" ? "To the airport" : "To campus"}
+              {value === "airport"
+                ? "To ATL"
+                : value === "campus"
+                  ? "From ATL"
+                  : "Other trips"}
             </a>
           );
         })}
       </nav>
+
+      {state.dir === "other" && openPlaces.length > 0 ? (
+        <nav
+          aria-label="Filter by place"
+          className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+        >
+          {[{ slug: null, name: "All places" }, ...openPlaces].map((place) => {
+            const next = { ...state, place: place.slug };
+            return (
+              <a
+                aria-current={state.place === place.slug ? "true" : undefined}
+                className={`flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm ${
+                  state.place === place.slug
+                    ? "border-primary bg-primary text-white"
+                    : "border-hairline"
+                }`}
+                href={browseHref(next)}
+                key={place.slug ?? "all-places"}
+                onClick={(event) => handleLocalLink(event, next)}
+              >
+                {place.name}
+              </a>
+            );
+          })}
+        </nav>
+      ) : null}
 
       <nav
         aria-label="Departure day"
@@ -334,7 +382,9 @@ export function RideBrowser({
       {directionRides.length === 0 ? (
         <div className="mt-8 min-h-[60svh] rounded-[12px] border border-hairline p-6 text-center">
           <p className="font-medium">
-            No rides yet. Post one and others can join.
+            {state.dir === "other"
+              ? "No other trips yet. Heading somewhere else? Post a ride and add your destination."
+              : "No rides yet. Post one and others can join."}
           </p>
           <a
             className="mt-4 inline-flex min-h-11 items-center rounded-[10px] bg-primary px-4 font-medium text-white"

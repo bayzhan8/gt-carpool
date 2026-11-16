@@ -26,6 +26,10 @@ export const DB_ERROR_KEYS = [
   "invalid_details",
   "already_reported",
   "report_limit",
+  "invalid_place_name",
+  "place_reserved",
+  "place_unavailable",
+  "place_limit",
 ] as const;
 
 export type DbErrorKey = (typeof DB_ERROR_KEYS)[number];
@@ -42,7 +46,7 @@ const ERROR_COPY: Record<DbErrorKey, string> = {
   already_member: "You're already in this ride.",
   not_member: "You're not a member of this ride.",
   not_owner: "Only the ride owner can do that.",
-  invalid_route: "Choose one campus location and one airport.",
+  invalid_route: "One end of every ride is campus.",
   invalid_time: "Pick a time at least 15 minutes from now and within 120 days.",
   invalid_seats: "Choose between 2 and 6 seats.",
   invalid_notes: "Notes must be 280 characters or fewer.",
@@ -60,6 +64,10 @@ const ERROR_COPY: Record<DbErrorKey, string> = {
   invalid_details: "Details must be 500 characters or fewer.",
   already_reported: "You already reported this ride.",
   report_limit: "You can send up to five reports in 24 hours.",
+  invalid_place_name: "Use a city or venue name, 2–32 characters.",
+  place_reserved: "That one's already in the list.",
+  place_unavailable: "That place isn't available. Try another name.",
+  place_limit: "You've added 3 new places this week. Pick one from the list.",
 };
 
 const FALLBACK = "Something went wrong. Try again.";

@@ -65,7 +65,7 @@ test("direction browsing is local and makes no document or RSC request", async (
     }
   });
 
-  await page.getByRole("link", { name: "To campus" }).click();
+  await page.getByRole("link", { name: "From ATL" }).click();
   await expect(page).toHaveURL(/dir=campus/);
   await expect(
     page.getByText("7:15 AM", { exact: true }).first(),
@@ -88,7 +88,7 @@ test("browser Back restores direction, time filter, and ride list", async ({
   await createRide(page, { dir: "campus", date, time: "07:20" });
 
   await page.goto("/");
-  await page.getByRole("link", { name: "To campus" }).click();
+  await page.getByRole("link", { name: "From ATL" }).click();
   await page.getByRole("button", { name: "Morning" }).click();
   await expect(page).toHaveURL("/?dir=campus&time=morning");
   await expect(
@@ -101,7 +101,7 @@ test("browser Back restores direction, time filter, and ride list", async ({
   await page.goBack();
 
   await expect(page).toHaveURL("/?dir=campus&time=morning");
-  await expect(page.getByRole("link", { name: "To campus" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "From ATL" })).toHaveAttribute(
     "aria-current",
     "page",
   );

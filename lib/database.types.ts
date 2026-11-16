@@ -101,8 +101,12 @@ export type Database = {
       places: {
         Row: {
           address: string;
+          created_at: string;
+          created_by: string | null;
+          hidden: boolean;
           kind: Database["public"]["Enums"]["place_kind"];
           name: string;
+          name_key: string;
           short_name: string;
           slug: string;
           sort: number;
@@ -110,21 +114,37 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           address: string;
+          created_at?: string;
+          created_by?: string | null;
+          hidden?: boolean;
           kind: Database["public"]["Enums"]["place_kind"];
           name: string;
+          name_key: string;
           short_name: string;
           slug: string;
           sort: number;
         };
         Update: {
           address?: string;
+          created_at?: string;
+          created_by?: string | null;
+          hidden?: boolean;
           kind?: Database["public"]["Enums"]["place_kind"];
           name?: string;
+          name_key?: string;
           short_name?: string;
           slug?: string;
           sort?: number;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "places_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       profiles: {
         Row: {
@@ -316,6 +336,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      add_place: { Args: { p_name: string }; Returns: Json };
       cancel_ride: { Args: { p_ride_id: string }; Returns: undefined };
       claim_notifications: { Args: { p_limit?: number }; Returns: Json };
       complete_notification: {
@@ -350,6 +371,7 @@ export type Database = {
       hook_before_user_created: { Args: { event: Json }; Returns: Json };
       join_ride: { Args: { p_ride_id: string }; Returns: undefined };
       leave_ride: { Args: { p_ride_id: string }; Returns: undefined };
+      list_open_places: { Args: Record<PropertyKey, never>; Returns: Json };
       list_rides: {
         Args: { p_day?: string; p_direction: string };
         Returns: Json;
@@ -397,7 +419,7 @@ export type Database = {
         | "time_changed"
         | "ride_reminder";
       notification_status: "pending" | "sending" | "sent" | "failed";
-      place_kind: "campus" | "airport";
+      place_kind: "campus" | "airport" | "other";
       ride_audience: "anyone" | "men" | "women";
       ride_status: "active" | "cancelled";
     };
@@ -540,7 +562,7 @@ export const Constants = {
         "ride_reminder",
       ],
       notification_status: ["pending", "sending", "sent", "failed"],
-      place_kind: ["campus", "airport"],
+      place_kind: ["campus", "airport", "other"],
       ride_audience: ["anyone", "men", "women"],
       ride_status: ["active", "cancelled"],
     },

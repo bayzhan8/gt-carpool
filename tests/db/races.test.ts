@@ -4,7 +4,8 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { Pool, type PoolClient } from "pg";
 
 type QueryOutcome =
-  { success: true } | { success: false; code?: string; message: string };
+  | { success: true; value?: unknown }
+  | { success: false; code?: string; message: string };
 
 function getDatabaseUrl(): string {
   const configuredUrl = process.env.DB_URL?.trim();
@@ -50,6 +51,7 @@ function getDatabaseUrl(): string {
 
 const pool = new Pool({ connectionString: getDatabaseUrl(), max: 12 });
 const fixtureUserIds: string[] = [];
+const fixturePlaceNames: string[] = [];
 
 async function createProfile(): Promise<string> {
   const id = randomUUID();
@@ -83,9 +85,12 @@ async function queryAsUser(
     await client.query("select set_config('request.jwt.claims', $1, true)", [
       JSON.stringify({ sub: userId, role: "authenticated" }),
     ]);
-    await client.query(query, values);
+    const result = await client.query(query, values);
     await client.query("commit");
-    return { success: true };
+    return {
+      success: true,
+      value: result.rows[0]?.[Object.keys(result.rows[0] ?? {})[0]],
+    };
   } catch (error) {
     await client.query("rollback");
     const databaseError = error as Error & { code?: string };
@@ -122,6 +127,16 @@ async function claimAsServiceRole(limit: number): Promise<unknown[]> {
 }
 
 afterEach(async () => {
+  if (fixturePlaceNames.length > 0) {
+    await pool.query(
+      `delete from public.places
+       where name_key = any(
+         select app.place_key(name) from unnest($1::text[]) as names(name)
+       )`,
+      [fixturePlaceNames],
+    );
+    fixturePlaceNames.length = 0;
+  }
   if (fixtureUserIds.length > 0) {
     await pool.query("delete from auth.users where id = any($1::uuid[])", [
       fixtureUserIds,
@@ -135,6 +150,87 @@ afterAll(async () => {
 });
 
 describe("database concurrency invariants", () => {
+  it("R-DEST-3 creates one shared place when five users add the same destination", async () => {
+    const userIds = await Promise.all(
+      Array.from({ length: 5 }, () => createProfile()),
+    );
+    const suffix = Array.from(randomUUID())
+      .map((character) =>
+        String.fromCharCode(97 + (character.charCodeAt(0) % 26)),
+      )
+      .join("")
+      .slice(0, 12);
+    const name = `Race Place ${suffix}`;
+    fixturePlaceNames.push(name);
+
+    const outcomes = await Promise.all(
+      userIds.map((userId) =>
+        queryAsUser(userId, "select public.add_place($1::text)", [name]),
+      ),
+    );
+    const places = outcomes
+      .filter(
+        (outcome): outcome is Extract<QueryOutcome, { success: true }> =>
+          outcome.success,
+      )
+      .map((outcome) => outcome.value as { slug: string; created: boolean });
+    const rowCount = await pool.query<{ count: string }>(
+      "select count(*)::text as count from public.places where name_key = app.place_key($1)",
+      [name],
+    );
+
+    expect(places).toHaveLength(5);
+    expect(new Set(places.map((place) => place.slug)).size).toBe(1);
+    expect(places.filter((place) => place.created)).toHaveLength(1);
+    expect(rowCount.rows[0].count).toBe("1");
+  });
+
+  it("R-DEST-3 limits five concurrent distinct place additions to three", async () => {
+    const userId = await createProfile();
+    const suffix = Array.from(randomUUID())
+      .map((character) =>
+        String.fromCharCode(97 + (character.charCodeAt(0) % 26)),
+      )
+      .join("")
+      .slice(0, 12);
+    const names = Array.from(
+      { length: 5 },
+      (_, index) => `Race ${suffix} ${String.fromCharCode(65 + index)}`,
+    );
+    fixturePlaceNames.push(...names);
+
+    const outcomes = await Promise.all(
+      names.map((name) =>
+        queryAsUser(userId, "select public.add_place($1::text)", [name]),
+      ),
+    );
+    const successes = outcomes.filter((outcome) => outcome.success);
+    const failures = outcomes.filter(
+      (outcome): outcome is Extract<QueryOutcome, { success: false }> =>
+        !outcome.success,
+    );
+
+    expect(successes).toHaveLength(3);
+    expect(failures).toHaveLength(2);
+    expect(
+      successes.filter(
+        (outcome) =>
+          (outcome.value as { created?: boolean } | undefined)?.created,
+      ),
+    ).toHaveLength(3);
+    expect(failures.map((failure) => [failure.code, failure.message])).toEqual(
+      Array.from({ length: 2 }, () => ["P0001", "place_limit"]),
+    );
+    const rowCount = await pool.query<{ count: string }>(
+      `select count(*)::text as count from public.places
+       where name_key = any(
+         select app.place_key(name) from unnest($1::text[]) as names(name)
+       )`,
+      [names],
+    );
+    expect(rowCount.rows[0].count).toBe("3");
+  });
+
   it("allows exactly one of eight concurrent joins into the last seat", async () => {
     const ownerId = await createProfile();
     const joinerIds = await Promise.all(

@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import type { Metadata } from "next";
 import { requireProfile } from "@/lib/auth";
 import { validDay } from "@/lib/ride-filters";
+import { listOpenPlaces } from "@/lib/rides";
 import { atlantaLocalToInstant, atlantaParts, nextDays } from "@/lib/time";
 import { RideForm } from "./ride-form";
 
@@ -55,9 +56,14 @@ export default async function NewRidePage({ searchParams }: NewRidePageProps) {
       : targetDate;
   const initialTime =
     requestedDateIsAllowed && !requestedTimeIsSoon ? requestedTime : targetTime;
-  const direction = params.dir === "campus" ? "campus" : "airport";
+  const direction =
+    params.dir === "campus" || params.dir === "other" ? params.dir : "airport";
   const nextParams = new URLSearchParams();
-  if (params.dir === "airport" || params.dir === "campus") {
+  if (
+    params.dir === "airport" ||
+    params.dir === "campus" ||
+    params.dir === "other"
+  ) {
     nextParams.set("dir", direction);
   }
   if (requestedDateIsAllowed && requestedDate) {
@@ -66,7 +72,11 @@ export default async function NewRidePage({ searchParams }: NewRidePageProps) {
   const next = nextParams.size
     ? `/rides/new?${nextParams.toString()}`
     : "/rides/new";
-  const { profile } = await requireProfile(next);
+  const [{ profile }, openPlaces] = await Promise.all([
+    requireProfile(next),
+    listOpenPlaces(),
+  ]);
+  const openSheetOnLoad = direction === "other" && openPlaces.length === 0;
 
   return (
     <section>
@@ -79,9 +89,17 @@ export default async function NewRidePage({ searchParams }: NewRidePageProps) {
           initialDate={initialDate}
           initialTime={initialTime}
           initialOrigin={direction === "campus" ? "atl-domestic" : "gt"}
-          initialDestination={direction === "campus" ? "gt" : "atl-domestic"}
+          initialDestination={
+            direction === "campus"
+              ? "gt"
+              : direction === "other"
+                ? (openPlaces[0]?.slug ?? "atl-domestic")
+                : "atl-domestic"
+          }
           maxDate={days[120] ?? ""}
           ownerGender={profile.gender}
+          openPlaces={openPlaces}
+          openSheetOnLoad={openSheetOnLoad}
         />
       ) : null}
     </section>

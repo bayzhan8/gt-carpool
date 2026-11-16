@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { getViewer } from "@/lib/auth";
-import { listRides } from "@/lib/rides";
+import { listOpenPlaces, listRides } from "@/lib/rides";
 import { nextDays } from "@/lib/time";
 import { parseBrowseParams, type BrowseParams } from "@/lib/ride-filters";
 import { Hero, HeroBanner } from "../hero";
@@ -12,12 +12,15 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   await connection();
-  const [params, viewer, airport, campus] = await Promise.all([
-    searchParams,
-    getViewer(),
-    listRides("airport", null),
-    listRides("campus", null),
-  ]);
+  const [params, viewer, airport, campus, other, openPlaces] =
+    await Promise.all([
+      searchParams,
+      getViewer(),
+      listRides("airport", null),
+      listRides("campus", null),
+      listRides("other", null),
+      listOpenPlaces(),
+    ]);
   const initial = parseBrowseParams(params);
   const gender = viewer.profile?.gender;
   const viewerAudience =
@@ -31,6 +34,8 @@ export default async function Home({ searchParams }: HomeProps) {
         campus={campus}
         days={nextDays(28)}
         initial={initial}
+        openPlaces={openPlaces}
+        other={other}
         viewerAudience={viewerAudience}
       />
     </>

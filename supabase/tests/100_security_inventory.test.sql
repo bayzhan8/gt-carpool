@@ -12,6 +12,7 @@ select is(
      and pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE')),
   array[
     'public.get_ride(uuid)'::regprocedure,
+    'public.list_open_places()'::regprocedure,
     'public.list_rides(text,date)'::regprocedure
   ]::regprocedure[],
   'R-VIS-4 anon can execute only the public browse RPCs'
@@ -23,6 +24,7 @@ select is(
    where n.nspname in ('public', 'app')
      and pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   array[
+    'public.add_place(text)'::regprocedure,
     'public.cancel_ride(uuid)'::regprocedure,
     'public.create_ride(text,text,timestamptz,integer,text,text)'::regprocedure,
     'public.delete_my_account()'::regprocedure,
@@ -31,6 +33,7 @@ select is(
     'public.get_ride(uuid)'::regprocedure,
     'public.join_ride(uuid)'::regprocedure,
     'public.leave_ride(uuid)'::regprocedure,
+    'public.list_open_places()'::regprocedure,
     'public.list_rides(text,date)'::regprocedure,
     'public.my_rides()'::regprocedure,
     'public.report_ride(uuid,text,text)'::regprocedure,
@@ -41,7 +44,10 @@ select is(
   'R-VIS-4 authenticated can execute only the listed RPCs'
 );
 select is(
-  (select pg_catalog.array_agg(p.oid::regprocedure order by p.oid::regprocedure::text)
+  (select pg_catalog.array_agg(
+     p.oid::regprocedure
+     order by n.nspname, p.proname, p.oid::regprocedure::text
+   )
    from pg_catalog.pg_proc as p
    join pg_catalog.pg_namespace as n on n.oid = p.pronamespace
    where n.nspname in ('public', 'app')
@@ -51,6 +57,7 @@ select is(
     'app.leave_ride_as(uuid,uuid)'::regprocedure,
     'app.notify_group_of_late_join()'::regprocedure,
     'app.reset_ride_reminders_after_departure_change()'::regprocedure,
+    'public.add_place(text)'::regprocedure,
     'public.cancel_ride(uuid)'::regprocedure,
     'public.claim_notifications(integer)'::regprocedure,
     'public.complete_notification(bigint,boolean,text)'::regprocedure,
@@ -63,6 +70,7 @@ select is(
     'public.hook_before_user_created(jsonb)'::regprocedure,
     'public.join_ride(uuid)'::regprocedure,
     'public.leave_ride(uuid)'::regprocedure,
+    'public.list_open_places()'::regprocedure,
     'public.list_rides(text,date)'::regprocedure,
     'public.my_rides()'::regprocedure,
     'public.report_ride(uuid,text,text)'::regprocedure,

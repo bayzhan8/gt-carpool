@@ -125,14 +125,18 @@ export default async function RidePage({
           <div>
             <dt className="text-xs font-medium text-muted">From</dt>
             <dd className="mt-1 font-medium">{ride.origin.name}</dd>
-            <dd className="mt-1 text-sm text-muted">{ride.origin.address}</dd>
+            {ride.origin.address ? (
+              <dd className="mt-1 text-sm text-muted">{ride.origin.address}</dd>
+            ) : null}
           </div>
           <div>
             <dt className="text-xs font-medium text-muted">To</dt>
             <dd className="mt-1 font-medium">{ride.destination.name}</dd>
-            <dd className="mt-1 text-sm text-muted">
-              {ride.destination.address}
-            </dd>
+            {ride.destination.address ? (
+              <dd className="mt-1 text-sm text-muted">
+                {ride.destination.address}
+              </dd>
+            ) : null}
           </div>
         </dl>
       </div>

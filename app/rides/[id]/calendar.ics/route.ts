@@ -22,7 +22,7 @@ export async function GET(
     start: ride.departs_at,
     minutes: 30,
     summary: `Carpool: ${ride.origin.short_name} → ${ride.destination.short_name}`,
-    location: ride.origin.address,
+    location: ride.origin.address || ride.origin.name,
     description: url,
     url,
   });

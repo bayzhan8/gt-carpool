@@ -120,31 +120,80 @@ describe("parseBrowseParams", () => {
   it.each([
     [
       { dir: ["campus", "airport"] },
-      { dir: "airport", day: null, time: null, minSeats: null, only: null },
+      {
+        dir: "airport",
+        place: null,
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      },
     ],
     [
       { dir: ["campus"], day: ["2026-11-12"], time: ["night"], seats: ["2"] },
-      { dir: "airport", day: null, time: null, minSeats: null, only: null },
+      {
+        dir: "airport",
+        place: null,
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      },
     ],
     [
       { seats: "0" },
-      { dir: "airport", day: null, time: null, minSeats: null, only: null },
+      {
+        dir: "airport",
+        place: null,
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      },
     ],
     [
       { seats: "9" },
-      { dir: "airport", day: null, time: null, minSeats: null, only: null },
+      {
+        dir: "airport",
+        place: null,
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      },
     ],
     [
       { time: "lunch" },
-      { dir: "airport", day: null, time: null, minSeats: null, only: null },
+      {
+        dir: "airport",
+        place: null,
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      },
     ],
     [
       { day: "2026-02-30" },
-      { dir: "airport", day: null, time: null, minSeats: null, only: null },
+      {
+        dir: "airport",
+        place: null,
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      },
     ],
     [
       { day: ["2026-11-12"] },
-      { dir: "airport", day: null, time: null, minSeats: null, only: null },
+      {
+        dir: "airport",
+        place: null,
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      },
     ],
   ] as const)("rejects invalid browse parameters %j", (params, expected) => {
     expect(parseBrowseParams(params)).toEqual(expected);
@@ -169,6 +218,7 @@ describe("parseBrowseParams", () => {
       }),
     ).toEqual({
       dir: "campus",
+      place: null,
       day: "2026-11-12",
       time: "night",
       minSeats: 3,
@@ -183,6 +233,7 @@ describe("parseBrowseParams", () => {
       }),
     ).toEqual({
       dir: "campus",
+      place: null,
       day: null,
       time: null,
       minSeats: null,
@@ -196,6 +247,7 @@ describe("browseHref", () => {
     expect(
       browseHref({
         dir: "airport",
+        place: null,
         day: null,
         time: null,
         minSeats: null,
@@ -208,6 +260,7 @@ describe("browseHref", () => {
     expect(
       browseHref({
         dir: "campus",
+        place: null,
         day: "2026-11-12",
         time: "night",
         minSeats: 2,
@@ -217,11 +270,36 @@ describe("browseHref", () => {
     expect(
       browseHref({
         dir: "airport",
+        place: null,
         day: null,
         time: null,
         minSeats: null,
         only: "women",
       }),
     ).toBe("/?dir=airport&only=women");
+  });
+
+  it("parses and serializes an Other trips place filter only", () => {
+    expect(parseBrowseParams({ dir: "other", place: "p-abc123def0" })).toEqual({
+      dir: "other",
+      place: "p-abc123def0",
+      day: null,
+      time: null,
+      minSeats: null,
+      only: null,
+    });
+    expect(
+      parseBrowseParams({ dir: "airport", place: "p-abc123def0" }).place,
+    ).toBeNull();
+    expect(
+      browseHref({
+        dir: "other",
+        place: "p-abc123def0",
+        day: null,
+        time: null,
+        minSeats: null,
+        only: null,
+      }),
+    ).toBe("/?dir=other&place=p-abc123def0");
   });
 });

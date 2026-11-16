@@ -205,7 +205,10 @@ export function Hero() {
       </p>
       <ol className="mt-6 grid gap-2 sm:grid-cols-3 sm:gap-3">
         {[
-          ["Find or post", "Campus ⇄ ATL Domestic or International."],
+          [
+            "Find or post",
+            "Campus ⇄ ATL Domestic or International, or anywhere else you're headed.",
+          ],
           ["Join the ride", "Riders see each other's numbers to coordinate."],
           [
             "Split the fare",

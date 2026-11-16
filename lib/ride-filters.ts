@@ -5,6 +5,7 @@ export type TimeBucket = "morning" | "afternoon" | "evening" | "night";
 
 export type BrowseState = {
   dir: RideDirection;
+  place: string | null;
   day: string | null;
   time: TimeBucket | null;
   minSeats: number | null;
@@ -15,6 +16,7 @@ export type OnlyAudience = Exclude<RideAudience, "anyone">;
 
 export type BrowseParams = {
   dir?: string | readonly string[];
+  place?: string | readonly string[];
   day?: string | readonly string[];
   time?: string | readonly string[];
   seats?: string | readonly string[];
@@ -70,7 +72,12 @@ export function validDay(value: string | undefined): string | null {
 }
 
 export function parseBrowseParams(params: BrowseParams): BrowseState {
-  const dir: RideDirection = params.dir === "campus" ? "campus" : "airport";
+  const dir: RideDirection =
+    params.dir === "campus" || params.dir === "other" ? params.dir : "airport";
+  const place =
+    dir === "other" && typeof params.place === "string" && params.place
+      ? params.place
+      : null;
   const day = typeof params.day === "string" ? validDay(params.day) : null;
   const time =
     typeof params.time === "string" &&
@@ -84,12 +91,15 @@ export function parseBrowseParams(params: BrowseParams): BrowseState {
   const only =
     params.only === "women" || params.only === "men" ? params.only : null;
 
-  return { dir, day, time, minSeats: seats, only };
+  return { dir, place, day, time, minSeats: seats, only };
 }
 
 export function browseHref(state: BrowseState): string {
   const params = new URLSearchParams({ dir: state.dir });
 
+  if (state.dir === "other" && state.place) {
+    params.set("place", state.place);
+  }
   if (state.day) params.set("day", state.day);
   if (state.time) params.set("time", state.time);
   if (state.minSeats !== null) {

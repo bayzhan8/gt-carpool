@@ -131,7 +131,7 @@ select is(
    from pg_catalog.jsonb_array_elements(public.list_rides('campus', null)) as rides(item)
    limit 1),
   '77000000-0000-4000-8000-000000000005',
-  'R-PLACE-2 campus direction filters by campus destination'
+  'R-PLACE-2 campus direction filters airport-to-campus rides'
 );
 select throws_ok(
   $$select public.list_rides('invalid', null)$$,
