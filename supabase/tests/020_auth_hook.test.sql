@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(17);
 
 select is(
   public.hook_before_user_created('{"user":{"email":"name@gatech.edu"}}'::jsonb),
@@ -63,6 +63,39 @@ select is(
   public.hook_before_user_created('{"user":{"email":"name@sub_domain.gatech.edu"}}'::jsonb) -> 'error' ->> 'http_code',
   '403',
   'R-AUTH-2 hook rejects underscores in domain labels'
+);
+select is(
+  public.hook_before_user_created('{"user":{"email":"someone@gmail.com"}}'::jsonb) -> 'error' ->> 'http_code',
+  '403',
+  'R-AUTH-2 hook rejects a non-GT address'
+);
+
+insert into app.email_exceptions (email, note)
+values ('guest.rider@example.com', 'test exception');
+
+select is(
+  public.hook_before_user_created('{"user":{"email":"guest.rider@example.com"}}'::jsonb),
+  '{}'::jsonb,
+  'R-AUTH-2 hook accepts an operator-managed exception'
+);
+select is(
+  public.hook_before_user_created('{"user":{"email":"Guest.Rider@Example.com"}}'::jsonb),
+  '{}'::jsonb,
+  'R-AUTH-2 hook accepts an uppercase exception address'
+);
+select is(
+  public.hook_before_user_created('{"user":{"email":" Guest.Rider@Example.com "}}'::jsonb),
+  '{}'::jsonb,
+  'R-AUTH-2 hook trims an exception address'
+);
+
+delete from app.email_exceptions
+where email = 'guest.rider@example.com';
+
+select is(
+  public.hook_before_user_created('{"user":{"email":"guest.rider@example.com"}}'::jsonb) -> 'error' ->> 'http_code',
+  '403',
+  'R-AUTH-2 hook rejects the exception after its row is removed'
 );
 
 select * from finish();

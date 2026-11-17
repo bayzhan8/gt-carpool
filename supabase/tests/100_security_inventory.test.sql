@@ -65,6 +65,7 @@ select is(
      and p.prosecdef),
   array[
     'app.enforce_gatech_auth_email()'::regprocedure,
+    'app.is_allowed_email(text)'::regprocedure,
     'app.leave_ride_as(uuid,uuid)'::regprocedure,
     'app.notify_group_of_late_join()'::regprocedure,
     'app.reset_ride_reminders_after_departure_change()'::regprocedure,

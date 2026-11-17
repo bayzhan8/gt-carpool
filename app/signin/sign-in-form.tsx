@@ -9,7 +9,7 @@ import {
 } from "react";
 import { isDemoEmail } from "@/lib/demo";
 import { authErrorCopy } from "@/lib/errors";
-import { isGatechEmail, normalizeEmail } from "@/lib/email";
+import { isEmailShaped, normalizeEmail } from "@/lib/email";
 import { createClient } from "@/lib/supabase/client";
 import { verifyOtpAction } from "./actions";
 
@@ -52,8 +52,8 @@ export function SignInForm({ next }: SignInFormProps) {
     event.preventDefault();
     setSendError("");
 
-    if (!isGatechEmail(email)) {
-      setSendError("Use your @gatech.edu email.");
+    if (!isEmailShaped(email)) {
+      setSendError("Enter a valid email.");
       return;
     }
 
@@ -126,7 +126,7 @@ export function SignInForm({ next }: SignInFormProps) {
   }
 
   return (
-    <form className="mt-8 space-y-5" onSubmit={sendCode}>
+    <form className="mt-8 space-y-5" noValidate onSubmit={sendCode}>
       <div className="space-y-2">
         <label className="block text-sm font-medium text-muted" htmlFor="email">
           Georgia Tech email
@@ -138,11 +138,6 @@ export function SignInForm({ next }: SignInFormProps) {
           id="email"
           inputMode="email"
           name="email"
-          onBlur={() => {
-            if (email.trim() && email.includes("@") && !isGatechEmail(email)) {
-              setSendError("Use your @gatech.edu email.");
-            }
-          }}
           onChange={(event) => {
             setEmail(event.target.value);
             if (sendError) setSendError("");

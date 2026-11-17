@@ -1,4 +1,6 @@
+import { execFileSync } from "node:child_process";
 import AxeBuilder from "@axe-core/playwright";
+import { Pool } from "pg";
 import { expect, test, type Page } from "@playwright/test";
 import { clearMailbox } from "./helpers/mailpit";
 import {
@@ -10,6 +12,26 @@ import {
 } from "./helpers/auth";
 
 const mailpitUrl = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
+
+function localDatabaseUrl(): string {
+  let value = process.env.DB_URL;
+  if (!value) {
+    const output = execFileSync("npx", ["supabase", "status", "-o", "env"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    value = output
+      .split(/\r?\n/)
+      .find((line) => line.startsWith("DB_URL="))
+      ?.slice("DB_URL=".length);
+  }
+  if (!value) throw new Error("Local Supabase DB_URL is unavailable");
+  value = value.replace(/^["']|["']$/g, "");
+  if (!["127.0.0.1", "localhost"].includes(new URL(value).hostname)) {
+    throw new Error("Auth E2E fixtures may only modify local Supabase");
+  }
+  return value;
+}
 
 test("sign-in verification includes the Junk folder hint", async ({ page }) => {
   await sendSignInCode(page, uniqueGatechEmail());
@@ -33,10 +55,7 @@ test("R-AUTH-2 rejects a non-GT address without Mailpit mail", async ({
   await clearMailbox();
   await page.goto("/signin");
   await page.getByLabel("Georgia Tech email").fill("someone@gmail.com");
-  await page.getByLabel("Georgia Tech email").press("Tab");
-  await expect(page.locator('p[role="alert"]')).toHaveText(
-    "Use your @gatech.edu email.",
-  );
+  await expect(page.locator('p[role="alert"]')).toHaveCount(0);
   await page.getByRole("button", { name: "Send code" }).click();
   await expect(page.locator('p[role="alert"]')).toHaveText(
     "Use your @gatech.edu email.",
@@ -46,6 +65,64 @@ test("R-AUTH-2 rejects a non-GT address without Mailpit mail", async ({
   expect(response.ok).toBe(true);
   const payload = (await response.json()) as { messages: unknown[] };
   expect(payload.messages).toHaveLength(0);
+});
+
+test("R-AUTH-2 malformed email is rejected before contacting Supabase", async ({
+  page,
+}) => {
+  let otpRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/auth/v1/otp")) otpRequests += 1;
+  });
+  await clearMailbox();
+  await page.goto("/signin");
+  await page.getByLabel("Georgia Tech email").fill("not-an-email");
+  await page.getByRole("button", { name: "Send code" }).click();
+  await expect(page.locator('p[role="alert"]')).toHaveText(
+    "Enter a valid email.",
+  );
+  expect(otpRequests).toBe(0);
+
+  const response = await fetch(`${mailpitUrl}/api/v1/messages?limit=100`);
+  expect(response.ok).toBe(true);
+  const payload = (await response.json()) as { messages: unknown[] };
+  expect(payload.messages).toHaveLength(0);
+});
+
+test("R-AUTH-2 a database exception signs in through Mailpit to onboarding", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const email = "guest.rider@example.com";
+  const pool = new Pool({ connectionString: localDatabaseUrl() });
+  try {
+    await pool.query("delete from auth.users where lower(btrim(email)) = $1", [
+      email,
+    ]);
+    await pool.query("delete from app.email_exceptions where email = $1", [
+      email,
+    ]);
+    await pool.query(
+      "insert into app.email_exceptions (email, note) values ($1, $2)",
+      [email, "Auth E2E exception fixture"],
+    );
+
+    await signInAs(page, email);
+    await expect(page).toHaveURL(/\/welcome/);
+    await expect(page.getByLabel("First name")).toBeVisible();
+  } finally {
+    try {
+      await pool.query(
+        "delete from auth.users where lower(btrim(email)) = $1",
+        [email],
+      );
+      await pool.query("delete from app.email_exceptions where email = $1", [
+        email,
+      ]);
+    } finally {
+      await pool.end();
+    }
+  }
 });
 
 test("R-AUTH-1/4/5 returns through onboarding and stores an E.164 phone", async ({

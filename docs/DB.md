@@ -50,24 +50,36 @@ member count ≤ seats.
 
 ## Privileges (R-VIS-4)
 
-- RLS enabled on all four tables with **no policies**.
+- RLS enabled on application tables, including `app.email_exceptions`, with
+  **no policies**.
 - `revoke all on all tables in schema public from anon, authenticated, public`
   and the matching `alter default privileges` (for role postgres, schema public)
   so tables created later are also closed. Same for sequences.
 - `alter default privileges ... revoke execute on functions from public` and an
   explicit `revoke execute ... from public, anon, authenticated` on every
-  function, then grant only the RPCs listed below.
+  function, then grant only required RPCs and narrowly scoped auth functions.
 - Internal helpers live in schema `app` (not exposed by PostgREST; `usage`
-  revoked from anon/authenticated).
+  revoked from anon/authenticated, with narrowly scoped grants for Auth).
 - Every function: `security definer`, `set search_path = ''`, fully-qualified
   names inside.
 
 ## Auth hook (R-AUTH-2)
 
-`public.hook_before_user_created(event jsonb) returns jsonb`: email =
-`lower(btrim(event->'user'->>'email'))`; if it matches the profiles regex →
-`'{}'::jsonb`; else `{"error":{"http_code":403,"message":"Use your @gatech.edu email."}}`.
-Execute granted only to `supabase_auth_admin`. config.toml:
+`app.email_exceptions` is an operator-managed data table for specific
+non-GT addresses; production allowlist rows remain database data, not repository
+data. It has RLS enabled, no policies, and no client grants.
+`app.is_allowed_email(text)` checks the normalized address against the existing
+GT-domain rule and this table.
+Its execute grant is limited to `supabase_auth_admin`; the helper and the
+enforcement functions are owned by `postgres`.
+
+The `public.hook_before_user_created(event jsonb)` hook, auth email trigger,
+`public.upsert_my_profile(...)`, and `profiles_email_check` all use that helper.
+The hook returns `'{}'::jsonb` for allowed addresses; otherwise it returns
+`{"error":{"http_code":403,"message":"Use your @gatech.edu email."}}`.
+The UI validates email shape but does not pre-block domains, so the hook is the
+authoritative domain decision and the displayed rejection copy is unchanged.
+Execute on the hook is granted only to `supabase_auth_admin`. config.toml:
 `[auth.hook.before_user_created] enabled = true, uri = "pg-functions://postgres/public/hook_before_user_created"`.
 (Production: same hook must be enabled in the dashboard — M6 checklist.)
 

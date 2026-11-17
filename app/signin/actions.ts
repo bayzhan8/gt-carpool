@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { authErrorCopy, errorCopy } from "@/lib/errors";
-import { isGatechEmail, normalizeEmail } from "@/lib/email";
+import { isEmailShaped, normalizeEmail } from "@/lib/email";
 import { safeNextPath } from "@/lib/next-path";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,8 +23,8 @@ export async function verifyOtpAction(
   const token = fieldValue(formData, "token");
   const next = safeNextPath(fieldValue(formData, "next"));
 
-  if (!isGatechEmail(email)) {
-    return { error: "Use your @gatech.edu email." };
+  if (!isEmailShaped(email)) {
+    return { error: "Enter a valid email." };
   }
 
   if (!/^\d{6}$/.test(token)) {

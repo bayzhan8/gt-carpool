@@ -24,7 +24,7 @@ The app does no payments, no booking, no chat, no maps.
 | ID | Rule |
 |---|---|
 | R-AUTH-1 | Sign-in is a 6-digit one-time code emailed to the address. No passwords, no magic links (GT's Microsoft Safe Links pre-opens links and burns them). Code expires in 10 minutes. |
-| R-AUTH-2 | Only addresses whose domain is exactly `gatech.edu` or ends in `.gatech.edu` may create an account. Enforced by a Supabase Auth `before_user_created` hook and a `profiles.email` check constraint. The UI rejects other domains before sending, with: "Use your @gatech.edu email." |
+| R-AUTH-2 | Addresses whose domain is exactly `gatech.edu` or ends in `.gatech.edu`, and exact normalized addresses in the operator-managed `app.email_exceptions` database table, may create an account. Enforced by a Supabase Auth `before_user_created` hook, the auth email trigger, the profile upsert and the `profiles.email` check constraint. The UI checks email shape but does not pre-block domains; server-side rejection remains: "Use your @gatech.edu email." |
 | R-AUTH-3 | Emails are trimmed and lower-cased before use. `Name@GATECH.EDU ` and `name@gatech.edu` are the same account. |
 | R-AUTH-4 | After sign-in, a user without a complete profile is sent to `/welcome` and cannot create or join rides until it is complete. |
 | R-AUTH-5 | After sign-in/onboarding the user returns to the page they started from. `next` is accepted only if it is a same-origin path starting with a single `/` (no `//`, no scheme, no backslash); otherwise `/`. |
